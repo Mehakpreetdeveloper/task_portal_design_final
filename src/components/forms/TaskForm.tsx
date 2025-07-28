@@ -211,7 +211,7 @@ export const TaskForm = ({ task, projectId, onSuccess, trigger }: TaskFormProps)
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {teamMembers?.map((member) => (
                     <SelectItem key={member.id} value={member.user_id}>
                       {member.full_name || member.email}
