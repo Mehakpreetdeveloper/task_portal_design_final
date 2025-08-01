@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Filter, Calendar as CalendarIcon, User, Flag, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Search, Filter, Calendar as CalendarIcon, User, Flag, Edit, Trash2, MoreVertical, Paperclip, Download } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -163,6 +163,21 @@ const Tasks = () => {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">{task.description || 'No description'}</p>
+        
+        {task.attachment_url && (
+          <div className="mb-4">
+            <a 
+              href={task.attachment_url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 text-sm text-primary hover:underline"
+            >
+              <Paperclip className="h-4 w-4" />
+              <span>View Attachment</span>
+              <Download className="h-3 w-3" />
+            </a>
+          </div>
+        )}
         
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center">

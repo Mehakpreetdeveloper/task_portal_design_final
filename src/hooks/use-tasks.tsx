@@ -13,6 +13,7 @@ export interface Task {
   priority: 'low' | 'medium' | 'high';
   due_date: string | null;
   assigned_to: string | null;
+  attachment_url: string | null;
   created_at: string;
   updated_at: string;
   projects?: {
@@ -32,8 +33,9 @@ export interface CreateTaskData {
   description?: string;
   status?: 'todo' | 'in_progress' | 'completed';
   priority?: 'low' | 'medium' | 'high';
-  due_date?: string;
-  assigned_to?: string;
+  due_date?: string | null;
+  assigned_to?: string | null;
+  attachment_url?: string | null;
 }
 
 export interface UpdateTaskData {
@@ -41,8 +43,9 @@ export interface UpdateTaskData {
   description?: string;
   status?: 'todo' | 'in_progress' | 'completed';
   priority?: 'low' | 'medium' | 'high';
-  due_date?: string;
-  assigned_to?: string;
+  due_date?: string | null;
+  assigned_to?: string | null;
+  attachment_url?: string | null;
 }
 
 export const useTasks = (projectId?: string) => {
