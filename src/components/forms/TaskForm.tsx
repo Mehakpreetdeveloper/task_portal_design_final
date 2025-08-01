@@ -48,7 +48,7 @@ export const TaskForm = ({ task, projectId, onSuccess, trigger }: TaskFormProps)
     description: task?.description || '',
     status: task?.status || 'todo',
     priority: task?.priority || 'medium',
-    assigned_to: task?.assigned_to || '',
+    assigned_to: task?.assigned_to || 'none',
   });
 
   const createTask = useCreateTask();
@@ -62,6 +62,7 @@ export const TaskForm = ({ task, projectId, onSuccess, trigger }: TaskFormProps)
     try {
       const taskData = {
         ...formData,
+        assigned_to: formData.assigned_to === 'none' ? null : formData.assigned_to,
         due_date: dueDate ? dueDate.toISOString() : null,
       };
 
@@ -81,7 +82,7 @@ export const TaskForm = ({ task, projectId, onSuccess, trigger }: TaskFormProps)
           description: '',
           status: 'todo',
           priority: 'medium',
-          assigned_to: '',
+          assigned_to: 'none',
         });
         setDueDate(undefined);
       }
@@ -211,7 +212,7 @@ export const TaskForm = ({ task, projectId, onSuccess, trigger }: TaskFormProps)
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="none">Unassigned</SelectItem>
                   {teamMembers?.map((member) => (
                     <SelectItem key={member.id} value={member.user_id}>
                       {member.full_name || member.email}
