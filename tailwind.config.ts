@@ -61,7 +61,18 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Custom brand colors
+				'primary-color': 'hsl(var(--primary-color))',
+				'dark-color': 'hsl(var(--dark-color))',
+				'secondary-color': 'hsl(var(--secondary-color))',
+				'grey-color': 'hsl(var(--grey-color))',
+				'white-color': 'hsl(var(--white-color))',
+				'blue': 'hsl(var(--blue))'
+			},
+			fontFamily: {
+				body: ['Nunito Sans', 'sans-serif'],
+				title: ['Jost', 'sans-serif'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
