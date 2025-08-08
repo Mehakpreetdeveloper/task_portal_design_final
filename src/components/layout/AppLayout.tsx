@@ -1,64 +1,127 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./AppSidebar";
-import { Bell, Search, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import React from 'react';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Bell, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import AppSidebar from './AppSidebar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+  const { user, profile, signOut } = useAuth();
+
+  const getInitials = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name[0]}${profile.last_name[0]}`;
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-            <div className="flex items-center justify-between h-full px-6">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger className="lg:hidden" />
-                <div className="hidden sm:flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder="Search tasks, projects, members..."
-                      className="pl-10 w-64 lg:w-80 bg-background/50"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-xs flex items-center justify-center text-destructive-foreground">
-                    3
-                  </span>
-                </Button>
-                
-                <div className="flex items-center gap-3 pl-3 border-l border-border">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium">Sarah Johnson</p>
-                    <p className="text-xs text-muted-foreground">Admin</p>
-                  </div>
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150" />
-                    <AvatarFallback>SJ</AvatarFallback>
-                  </Avatar>
-                </div>
+          <header className="h-14 flex items-center justify-between border-b bg-background px-4">
+            <div className="flex items-center">
+              <SidebarTrigger />
+              <div className="ml-4">
+                <h1 className="text-lg font-semibold text-foreground">TaskFlow</h1>
               </div>
             </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Notifications */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                      3
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0">
+                  <div className="p-4 border-b">
+                    <h4 className="font-semibold">Notifications</h4>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div className="text-sm">
+                      <div className="font-medium">New task assigned</div>
+                      <div className="text-muted-foreground">You have been assigned a new task</div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium">Project deadline approaching</div>
+                      <div className="text-muted-foreground">Project Alpha deadline is in 2 days</div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium">Team meeting scheduled</div>
+                      <div className="text-muted-foreground">Weekly team sync at 2 PM today</div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* User Menu */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="end">
+                  <div className="p-4 border-b">
+                    <div className="font-medium">
+                      {profile?.first_name && profile?.last_name 
+                        ? `${profile.first_name} ${profile.last_name}`
+                        : user?.email
+                      }
+                    </div>
+                    <div className="text-sm text-muted-foreground">{user?.email}</div>
+                  </div>
+                  <div className="p-2">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      onClick={() => window.location.href = '/profile'}
+                    >
+                      <Avatar className="mr-2 h-4 w-4">
+                        <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+                      </Avatar>
+                      My Profile
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      onClick={signOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </header>
-          
-          {/* Main Content */}
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-6 bg-muted/10">
             {children}
           </main>
         </div>
       </div>
     </SidebarProvider>
   );
-}
+};
+
+export default AppLayout;

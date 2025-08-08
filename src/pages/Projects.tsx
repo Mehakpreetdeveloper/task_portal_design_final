@@ -1,286 +1,678 @@
-import { useState } from "react";
-import { Plus, Search, Filter, MoreVertical, Users, Calendar, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useData } from "@/contexts/DataContext";
-import { ProjectFormDialog } from "@/components/forms/ProjectFormDialog";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { Project } from "@/data/mockData";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Plus, Edit, Trash2, Users, Calendar } from 'lucide-react';
 
-export default function Projects() {
-  const { projects, users, tasks, deleteProject } = useData();
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
-  const [deletingProject, setDeletingProject] = useState<Project | undefined>(undefined);
+type Project = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: 'active' | 'completed' | 'on_hold';
+  start_date: string | null;
+  end_date: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+type Profile = {
+  id: string;
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  primary_role?: string;
+  user_roles?: any[];
+};
+
+type ProjectMember = {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: string;
+  profiles: Profile;
+};
+
+const Projects = () => {
+  const { user, isAdmin, isProjectManager } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [projectMembers, setProjectMembers] = useState<{[key: string]: ProjectMember[]}>({});
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    status: 'active' | 'completed' | 'on_hold';
+    start_date: string;
+    end_date: string;
+    assigned_users: string[];
+  }>({
+    name: '',
+    description: '',
+    status: 'active',
+    start_date: '',
+    end_date: '',
+    assigned_users: [],
   });
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Completed': return 'default';
-      case 'Active': return 'secondary';
-      case 'Planning': return 'outline';
-      case 'On Hold': return 'destructive';
-      default: return 'secondary';
-    }
-  };
+  const canCreateProjects = isAdmin || isProjectManager;
 
-  const getUserById = (id: string) => users.find(user => user.id === id);
-  const getProjectTasks = (projectId: string) => 
-    tasks.filter(task => task.projectIds.includes(projectId));
+  useEffect(() => {
+    fetchProjects();
+    fetchUsers();
+  }, []);
 
-  const handleDeleteProject = () => {
-    if (deletingProject) {
-      deleteProject(deletingProject.id);
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProjects((data || []) as Project[]);
+      
+      // Fetch members for each project
+      if (data && data.length > 0) {
+        const membersData: {[key: string]: ProjectMember[]} = {};
+        for (const project of data) {
+          const { data: members } = await supabase
+            .from('project_members')
+            .select('id, project_id, user_id, role')
+            .eq('project_id', project.id);
+          
+          if (members) {
+            const membersWithProfiles = await Promise.all(
+              members.map(async (member) => {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('id, user_id, first_name, last_name')
+                  .eq('user_id', member.user_id)
+                  .single();
+                
+                return {
+                  ...member,
+                  profiles: profile || { 
+                    id: '', 
+                    user_id: member.user_id, 
+                    first_name: 'Unknown', 
+                    last_name: 'User' 
+                  }
+                };
+              })
+            );
+            membersData[project.id] = membersWithProfiles;
+          } else {
+            membersData[project.id] = [];
+          }
+        }
+        setProjectMembers(membersData);
+      }
+    } catch (error: any) {
       toast({
-        title: "Project deleted",
-        description: "Project has been deleted successfully.",
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
       });
-      setDeletingProject(undefined);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const fetchUsers = async () => {
+    try {
+      // Fetch all users with their roles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('first_name');
+
+      if (profilesError) throw profilesError;
+
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      if (rolesError) throw rolesError;
+
+      // Combine profiles with their primary roles
+      const usersWithRoles = (profilesData || []).map(profile => {
+        const userRoles = (rolesData || []).filter(role => role.user_id === profile.user_id);
+        const primaryRole = userRoles.length > 0 ? userRoles[0].role : 'user';
+        
+        return {
+          ...profile,
+          primary_role: primaryRole,
+          user_roles: userRoles
+        };
+      });
+
+      setUsers(usersWithRoles);
+    } catch (error: any) {
+      console.error('Error fetching users:', error.message);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      if (editingProject) {
+        // Update existing project
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            name: formData.name,
+            description: formData.description,
+            status: formData.status,
+            start_date: formData.start_date || null,
+            end_date: formData.end_date || null,
+          })
+          .eq('id', editingProject.id);
+
+        if (error) throw error;
+
+        // Update project members - don't delete owner but update others
+        // First get all current members except owner
+        const { data: currentMembers } = await supabase
+          .from('project_members')
+          .select('*')
+          .eq('project_id', editingProject.id)
+          .neq('role', 'owner');
+
+        // Delete non-owner members
+        if (currentMembers && currentMembers.length > 0) {
+          const { error: deleteMembersError } = await supabase
+            .from('project_members')
+            .delete()
+            .eq('project_id', editingProject.id)
+            .neq('role', 'owner');
+
+          if (deleteMembersError) throw deleteMembersError;
+        }
+
+        // Add new members (excluding owner if they're in the list)
+        const ownerMember = await supabase
+          .from('project_members')
+          .select('user_id')
+          .eq('project_id', editingProject.id)
+          .eq('role', 'owner')
+          .single();
+
+        const ownerUserId = ownerMember.data?.user_id;
+        const newMemberUserIds = formData.assigned_users.filter(userId => userId !== ownerUserId);
+
+        if (newMemberUserIds.length > 0) {
+          const memberInserts = newMemberUserIds.map(userId => ({
+            project_id: editingProject.id,
+            user_id: userId,
+            role: 'member',
+          }));
+
+          const { error: assignError } = await supabase
+            .from('project_members')
+            .insert(memberInserts);
+
+          if (assignError) throw assignError;
+        }
+
+        toast({
+          title: 'Project Updated',
+          description: 'Project has been successfully updated.',
+        });
+      } else {
+        // Create new project
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            name: formData.name,
+            description: formData.description,
+            status: formData.status,
+            start_date: formData.start_date || null,
+            end_date: formData.end_date || null,
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (projectError) throw projectError;
+
+        // Add creator as project owner
+        const { error: memberError } = await supabase
+          .from('project_members')
+          .insert({
+            project_id: projectData.id,
+            user_id: user.id,
+            role: 'owner',
+          });
+
+        if (memberError) throw memberError;
+
+        // Add assigned users as members
+        if (formData.assigned_users.length > 0) {
+          const memberInserts = formData.assigned_users
+            .filter(userId => userId !== user.id) // Don't duplicate the owner
+            .map(userId => ({
+              project_id: projectData.id,
+              user_id: userId,
+              role: 'member',
+            }));
+
+          if (memberInserts.length > 0) {
+            const { error: assignError } = await supabase
+              .from('project_members')
+              .insert(memberInserts);
+
+            if (assignError) throw assignError;
+          }
+        }
+
+        toast({
+          title: 'Project Created',
+          description: 'Project has been successfully created.',
+        });
+      }
+
+      fetchProjects();
+      setDialogOpen(false);
+      setEditingProject(null);
+      setFormData({ 
+        name: '', 
+        description: '', 
+        status: 'active',
+        start_date: '',
+        end_date: '',
+        assigned_users: [],
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEdit = (project: Project) => {
+    setEditingProject(project);
+    
+    // Get current project members to populate the form
+    const currentMembers = projectMembers[project.id] || [];
+    const memberUserIds = currentMembers.map(member => member.user_id);
+    
+    setFormData({
+      name: project.name,
+      description: project.description || '',
+      status: project.status,
+      start_date: project.start_date || '',
+      end_date: project.end_date || '',
+      assigned_users: memberUserIds,
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Project Deleted',
+        description: 'Project has been successfully deleted.',
+      });
+
+      fetchProjects();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'default';
+      case 'completed':
+        return 'secondary';
+      case 'on_hold':
+        return 'outline';
+      default:
+        return 'default';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Project Management
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Oversee and coordinate all projects across your organization
+          <h1 className="text-3xl font-bold">Projects</h1>
+          <p className="text-muted-foreground">
+            Manage your projects and collaborate with your team.
           </p>
         </div>
-        <Button 
-          className="bg-gradient-to-r from-primary to-primary-glow hover:shadow-lg transition-all"
-          onClick={() => setShowCreateDialog(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Project
-        </Button>
-      </div>
-
-      {/* Filters */}
-      <Card className="border-0 shadow-card">
-        <CardContent className="p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Planning">Planning</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="On Hold">On Hold</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" size="icon">
-                <Filter className="w-4 h-4" />
+        {canCreateProjects && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => {
+                setEditingProject(null);
+                setFormData({ 
+                  name: '', 
+                  description: '', 
+                  status: 'active',
+                  start_date: '',
+                  end_date: '',
+                  assigned_users: [],
+                });
+              }}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
               </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Projects Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {filteredProjects.map((project) => {
-          const teamMembers = project.teamMembers.map(id => getUserById(id)).filter(Boolean);
-          const createdBy = getUserById(project.createdBy);
-          const projectTasks = getProjectTasks(project.id);
-          const completedTasks = projectTasks.filter(task => task.status === 'Completed').length;
-
-          return (
-            <Card key={project.id} className="border-0 shadow-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2 flex-1">
-                    <CardTitle className="text-xl leading-tight">{project.title}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getStatusBadgeVariant(project.status)} className="text-xs">
-                        {project.status}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {projectTasks.length} tasks
-                      </span>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingProject(project)}>
-                        Edit Project
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Manage Team</DropdownMenuItem>
-                      <DropdownMenuItem>View Timeline</DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => setDeletingProject(project)}
-                      >
-                        Delete Project
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProject ? 'Edit Project' : 'Create New Project'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingProject ? 'Update the project details.' : 'Create a new project to organize your tasks.'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Project Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter project name"
+                    required
+                  />
                 </div>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {project.description}
-                </p>
-
-                {/* Progress */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">Progress</span>
-                    </div>
-                    <span className="text-sm font-semibold">{project.progress}%</span>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Enter project description"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: 'active' | 'completed' | 'on_hold') =>
+                      setFormData({ ...formData, status: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="on_hold">On Hold</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="start_date">Start Date</Label>
+                    <Input
+                      id="start_date"
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
                   </div>
-                  <Progress value={project.progress} className="h-2" />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{completedTasks} of {projectTasks.length} tasks completed</span>
-                    <span>{Math.round(project.progress)}% complete</span>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_date">End Date</Label>
+                    <Input
+                      id="end_date"
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    />
                   </div>
                 </div>
-
-                {/* Team Members */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">Team</span>
-                    <span className="text-xs text-muted-foreground">({teamMembers.length} members)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                      {teamMembers.slice(0, 5).map((member) => (
-                        <Avatar key={member.id} className="w-8 h-8 border-2 border-background">
-                          <AvatarImage src={member.photo} />
-                          <AvatarFallback className="text-xs">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                      {teamMembers.length > 5 && (
-                        <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center">
-                          <span className="text-xs font-medium">+{teamMembers.length - 5}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1 ml-2">
-                      {teamMembers.slice(0, 3).map((member) => (
-                        <Badge key={member.id} variant="outline" className="text-xs">
-                          {member.employeeType}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="flex items-center gap-4 pt-4 border-t border-border">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    <span>Start: {new Date(project.startDate).toLocaleDateString()}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    End: {new Date(project.endDate).toLocaleDateString()}
-                  </div>
-                  <div className="ml-auto text-xs text-muted-foreground">
-                    Created by {createdBy?.name}
+                <div className="space-y-2">
+                  <Label>Assign Users {editingProject ? '(Update Members)' : '(Optional)'}</Label>
+                  <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
+                    {users.map((userProfile) => (
+                      <div key={userProfile.user_id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`user-${userProfile.user_id}`}
+                          checked={formData.assigned_users.includes(userProfile.user_id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                assigned_users: [...formData.assigned_users, userProfile.user_id]
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                assigned_users: formData.assigned_users.filter(id => id !== userProfile.user_id)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <Label htmlFor={`user-${userProfile.user_id}`} className="text-sm">
+                          <span className="font-medium">
+                            {userProfile.first_name} {userProfile.last_name}
+                          </span>
+                          {userProfile.primary_role && (
+                            <span className="ml-2 text-xs text-muted-foreground capitalize">
+                              ({userProfile.primary_role.replace('_', ' ')})
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                {/* Attachments */}
-                {project.attachments.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{project.attachments.length} attachments</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingProject ? 'Update' : 'Create'} Project
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
-      {filteredProjects.length === 0 && (
-        <Card className="border-0 shadow-card">
-          <CardContent className="p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-              <Search className="w-8 h-8 text-muted-foreground" />
+      {projects.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-medium">No projects yet</h3>
+              <p className="text-sm text-muted-foreground">
+                {canCreateProjects
+                  ? 'Get started by creating your first project.'
+                  : 'No projects have been created yet.'}
+              </p>
+              {canCreateProjects && (
+                  <Button onClick={() => {
+                    setEditingProject(null);
+                    setFormData({ 
+                      name: '', 
+                      description: '', 
+                      status: 'active',
+                      start_date: '',
+                      end_date: '',
+                      assigned_users: [],
+                    });
+                    setDialogOpen(true);
+                  }} className="mt-4">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Project
+                </Button>
+              )}
             </div>
-            <h3 className="text-lg font-semibold mb-2">No projects found</h3>
-            <p className="text-muted-foreground mb-4">
-              Try adjusting your search criteria or create a new project.
-            </p>
-            <Button 
-              className="bg-gradient-to-r from-primary to-primary-glow"
-              onClick={() => setShowCreateDialog(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create First Project
-            </Button>
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <Card key={project.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{project.name}</CardTitle>
+                    <Badge variant={getStatusBadgeColor(project.status)}>
+                      {project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(project)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    {(isAdmin || isProjectManager) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this project? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(project.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {project.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {project.description}
+                    </p>
+                  )}
+                  <div className="space-y-2">
+                    {(project.start_date || project.end_date) && (
+                      <div className="text-xs text-muted-foreground">
+                        {project.start_date && (
+                          <div>Start: {new Date(project.start_date).toLocaleDateString()}</div>
+                        )}
+                        {project.end_date && (
+                          <div>End: {new Date(project.end_date).toLocaleDateString()}</div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center">
+                        <Calendar className="mr-1 h-3 w-3" />
+                        Created {new Date(project.created_at).toLocaleDateString()}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedProject(project);
+                          setMembersDialogOpen(true);
+                        }}
+                      >
+                        <Users className="mr-1 h-3 w-3" />
+                        Members ({projectMembers[project.id]?.length || 0})
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
-      {/* Dialogs */}
-      <ProjectFormDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-      />
-      
-      {editingProject && (
-        <ProjectFormDialog
-          open={!!editingProject}
-          onOpenChange={(open) => !open && setEditingProject(undefined)}
-          project={editingProject}
-        />
-      )}
-
-      <ConfirmDialog
-        open={!!deletingProject}
-        onOpenChange={(open) => !open && setDeletingProject(undefined)}
-        title="Delete Project"
-        description={`Are you sure you want to delete "${deletingProject?.title}"? This action cannot be undone and will remove the project from all associated tasks.`}
-        onConfirm={handleDeleteProject}
-      />
+      {/* Members Dialog */}
+      <Dialog open={membersDialogOpen} onOpenChange={setMembersDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Project Members</DialogTitle>
+            <DialogDescription>
+              {selectedProject?.name} - Team members and their roles
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {selectedProject && projectMembers[selectedProject.id]?.length > 0 ? (
+              projectMembers[selectedProject.id].map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">
+                      {member.profiles.first_name} {member.profiles.last_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {member.role}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                No members assigned to this project yet.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+};
+
+export default Projects;

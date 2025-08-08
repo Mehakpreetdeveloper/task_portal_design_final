@@ -1,202 +1,192 @@
-import { CheckSquare, FolderOpen, Users, TrendingUp, Clock, AlertCircle } from "lucide-react";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useData } from "@/contexts/DataContext";
-import { mockNotifications } from "@/data/mockData";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { CheckSquare, FolderOpen, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 
-export default function Dashboard() {
-  const { tasks, projects, users } = useData();
-  
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-  const inProgressTasks = tasks.filter(task => task.status === 'In Progress').length;
-  const totalProjects = projects.length;
-  const activeProjects = projects.filter(project => project.status === 'Active').length;
-  const totalTeamMembers = users.length;
-  const activeMembers = users.filter(user => user.status === 'Active').length;
-  
-  const recentTasks = tasks.slice(0, 5);
-  const recentNotifications = mockNotifications.slice(0, 4);
+const Dashboard = () => {
+  const { profile, isAdmin, isProjectManager } = useAuth();
+  const [stats, setStats] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    totalProjects: 0,
+    overdueTasks: 0,
+    pendingTasks: 0,
+  });
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Completed': return 'default';
-      case 'In Progress': return 'secondary';
-      case 'In Review': return 'outline';
-      case 'Todo': return 'destructive';
-      default: return 'secondary';
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      // Fetch tasks count
+      const { count: totalTasks } = await (supabase as any)
+        .from('tasks')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: completedTasks } = await (supabase as any)
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Done');
+
+      // Fetch projects count
+      const { count: totalProjects } = await (supabase as any)
+        .from('projects')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch overdue tasks
+      const today = new Date().toISOString().split('T')[0];
+      const { count: overdueTasks } = await (supabase as any)
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .lt('due_date', today)
+        .neq('status', 'Done');
+
+      // Fetch pending tasks (todo and in progress)
+      const { count: pendingTasks } = await (supabase as any)
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['todo', 'in_progress']);
+
+      setStats({
+        totalTasks: totalTasks || 0,
+        completedTasks: completedTasks || 0,
+        totalProjects: totalProjects || 0,
+        overdueTasks: overdueTasks || 0,
+        pendingTasks: pendingTasks || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Critical': return 'text-destructive';
-      case 'High': return 'text-warning';
-      case 'Medium': return 'text-info';
-      case 'Low': return 'text-success';
-      default: return 'text-muted-foreground';
-    }
-  };
+  const statCards = [
+    {
+      title: 'Total Tasks',
+      value: stats.totalTasks,
+      description: 'Active tasks in the system',
+      icon: CheckSquare,
+      color: 'text-blue-600',
+    },
+    {
+      title: 'Pending Tasks',
+      value: stats.pendingTasks,
+      description: 'Tasks in progress or todo',
+      icon: AlertCircle,
+      color: 'text-orange-600',
+    },
+    {
+      title: 'Completed Tasks',
+      value: stats.completedTasks,
+      description: 'Tasks marked as done',
+      icon: TrendingUp,
+      color: 'text-green-600',
+    },
+    {
+      title: 'Total Projects',
+      value: stats.totalProjects,
+      description: 'Active projects',
+      icon: FolderOpen,
+      color: 'text-purple-600',
+    },
+    {
+      title: 'Overdue Tasks',
+      value: stats.overdueTasks,
+      description: 'Tasks past their due date',
+      icon: Clock,
+      color: 'text-red-600',
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-          Dashboard Overview
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome back, {profile?.first_name}!
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back! Here's what's happening with your projects today.
+        <p className="text-muted-foreground">
+          Here's an overview of your current work and progress.
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total Tasks"
-          value={totalTasks}
-          icon={CheckSquare}
-          trend={{ value: "12%", isPositive: true }}
-        />
-        <StatsCard
-          title="Active Projects"
-          value={activeProjects}
-          icon={FolderOpen}
-          trend={{ value: "8%", isPositive: true }}
-        />
-        <StatsCard
-          title="Team Members"
-          value={activeMembers}
-          icon={Users}
-          trend={{ value: "2%", isPositive: true }}
-        />
-        <StatsCard
-          title="Completion Rate"
-          value={`${Math.round((completedTasks / totalTasks) * 100)}%`}
-          icon={TrendingUp}
-          trend={{ value: "5%", isPositive: true }}
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Tasks */}
-        <Card className="border-0 shadow-card">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Recent Tasks
-            </CardTitle>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Your latest task updates and project changes
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {recentTasks.map((task) => {
-              const assignedUser = users.find(user => user.id === task.assignedTo[0]);
-              return (
-                <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-sm">{task.title}</h4>
-                      <Badge variant={getStatusBadgeVariant(task.status)} className="text-xs">
-                        {task.status}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {task.description}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        Due {new Date(task.dueDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  {assignedUser && (
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={assignedUser.photo} />
-                      <AvatarFallback>{assignedUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Project Progress */}
-        <Card className="border-0 shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              Project Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {projects.map((project) => (
-              <div key={project.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-sm">{project.title}</h4>
-                    <p className="text-xs text-muted-foreground">{project.status}</p>
-                  </div>
-                  <span className="text-sm font-medium">{project.progress}%</span>
-                </div>
-                <Progress value={project.progress} className="h-2" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {project.teamMembers.length} members
-                  </span>
-                  <span className="text-xs text-muted-foreground">•</span>
-                  <span className="text-xs text-muted-foreground">
-                    Due {new Date(project.endDate).toLocaleDateString()}
-                  </span>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Task completed</p>
+                  <p className="text-xs text-muted-foreground">2 hours ago</p>
                 </div>
               </div>
-            ))}
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">New project created</p>
+                  <p className="text-xs text-muted-foreground">5 hours ago</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Task assigned</p>
+                  <p className="text-xs text-muted-foreground">1 day ago</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>
+              Common tasks to get you started
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div className="font-medium">Create New Task</div>
+              <div className="text-sm text-muted-foreground">Add a new task to your projects</div>
+            </button>
+            {(isAdmin || isProjectManager) && (
+              <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                <div className="font-medium">Create New Project</div>
+                <div className="text-sm text-muted-foreground">Start a new project</div>
+              </button>
+            )}
+            <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div className="font-medium">View Calendar</div>
+              <div className="text-sm text-muted-foreground">Check upcoming deadlines</div>
+            </button>
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Activity */}
-      <Card className="border-0 shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-primary" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentNotifications.map((notification) => {
-              const relatedUser = users.find(user => 
-                notification.message.toLowerCase().includes(user.name.toLowerCase())
-              );
-              return (
-                <div key={notification.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm">{notification.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(notification.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  {relatedUser && (
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={relatedUser.photo} />
-                      <AvatarFallback>{relatedUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
-}
+};
+
+export default Dashboard;
