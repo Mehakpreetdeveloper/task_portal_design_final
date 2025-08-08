@@ -8,43 +8,46 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 8%;
+    /* Main 5 color palette */
+    --orange: 16 98% 54%;              /* #fd4a18 */
+    --blue: 196 82% 20%;               /* #08415c */
+    --light-grey: 210 25% 97%;         /* #F7F8F9 */
+    --white: 0 0% 100%;                /* #ffffff */
+    --black: 0 0% 0%;                  /* #000000 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 8%;
+    /* Background colors - using the 3 specified */
+    --background: 210 25% 97%;         /* Light grey background */
+    --background-orange: 16 98% 54%;   /* Orange background */
+    --background-blue: 196 82% 20%;    /* Blue background */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 8%;
-
-    --primary: 16 98% 54%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 0% 38%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 210 25% 97%;
-    --muted-foreground: 0 0% 38%;
-
-    --accent: 196 82% 20%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84.2% 60.2%;
+    /* Semantic color mapping */
+    --foreground: 0 0% 0%;             /* Black text */
+    --card: 0 0% 100%;                 /* White cards */
+    --card-foreground: 0 0% 0%;        /* Black text on cards */
+    --popover: 0 0% 100%;              /* White popover */
+    --popover-foreground: 0 0% 0%;     /* Black text on popover */
+    --primary: 16 98% 54%;             /* Orange primary */
+    --primary-foreground: 0 0% 100%;   /* White text on orange */
+    --secondary: 196 82% 20%;          /* Blue secondary */
+    --secondary-foreground: 0 0% 100%; /* White text on blue */
+    --muted: 210 25% 97%;              /* Light grey muted */
+    --muted-foreground: 0 0% 0%;       /* Black text on muted */
+    --accent: 16 98% 54%;              /* Orange accent */
+    --accent-foreground: 0 0% 100%;    /* White text on accent */
+    --destructive: 0 84.2% 60.2%;      /* Keep red for destructive */
     --destructive-foreground: 0 0% 100%;
-
-    --border: 210 25% 97%;
-    --input: 210 25% 97%;
-    --ring: 16 98% 54%;
-
+    --border: 210 25% 97%;             /* Light grey borders */
+    --input: 0 0% 100%;                /* White inputs */
+    --ring: 16 98% 54%;                /* Orange focus ring */
     --radius: 0.5rem;
 
-    /* Custom brand colors */
-    --primary-color: 16 98% 54%;       /* Main accent color (orange) #fd4a18 */
-    --dark-color: 0 0% 8%;             /* Dark background or headings #151515 */
-    --secondary-color: 0 0% 38%;       /* Text and secondary UI elements #616161 */
-    --grey-color: 210 25% 97%;         /* Light app background #F7F8F9 */
-    --white-color: 0 0% 100%;          /* Cards/panels only #ffffff */
-    --blue-color: 196 82% 20%;         /* Blue highlights #08415c */
+    /* Legacy brand colors for compatibility */
+    --primary-color: 16 98% 54%;       /* Orange #fd4a18 */
+    --dark-color: 0 0% 0%;             /* Black #000000 */
+    --secondary-color: 196 82% 20%;    /* Blue #08415c */
+    --grey-color: 210 25% 97%;         /* Light grey #F7F8F9 */
+    --white-color: 0 0% 100%;          /* White #ffffff */
+    --blue-color: 196 82% 20%;         /* Blue #08415c */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 8%;
