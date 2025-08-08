@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckSquare, FolderOpen, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { CheckSquare, FolderOpen, Clock, TrendingUp, AlertCircle, Monitor, PieChart, Smartphone } from 'lucide-react';
 
 const Dashboard = () => {
   const { profile, isAdmin, isProjectManager } = useAuth();
@@ -185,6 +185,126 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Professional Services Section */}
+      <section className="bg-blue text-white-color py-16 px-6 rounded-lg">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="font-title text-4xl font-bold mb-6">
+                Professional IT Services
+                <div className="w-16 h-1 bg-primary-color mt-4"></div>
+              </h2>
+              <p className="text-lg mb-6 opacity-90">
+                Our platform offers professional IT services in alignment with the ongoing 
+                standards in the global marketplace.
+              </p>
+              <p className="text-base opacity-80">
+                Our well-trained web designers use advanced technology for creating 
+                unique and visually-appealing displays. Our innovative web developers 
+                strive to equip a website with high-quality features.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Cards */}
+      <section className="py-16">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="relative">
+              <div className="absolute top-0 right-0 text-8xl font-bold text-grey-color opacity-20">01</div>
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-primary-color/10 rounded-lg flex items-center justify-center mb-4">
+                  <Monitor className="h-8 w-8 text-primary-color" />
+                </div>
+                <CardTitle className="font-title text-xl mb-4">Digital Experience</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Perform research and analysis</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Create buyer personas</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Outline your customer journey</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Implement and monitor your strategy</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="relative">
+              <div className="absolute top-0 right-0 text-8xl font-bold text-grey-color opacity-20">02</div>
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-primary-color/10 rounded-lg flex items-center justify-center mb-4">
+                  <PieChart className="h-8 w-8 text-primary-color" />
+                </div>
+                <CardTitle className="font-title text-xl mb-4">Business Planning</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Perform Market Research</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Write a Business Plan</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Plan Your Funding</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Choosing the Business Structure</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="relative">
+              <div className="absolute top-0 right-0 text-8xl font-bold text-grey-color opacity-20">03</div>
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-primary-color/10 rounded-lg flex items-center justify-center mb-4">
+                  <Smartphone className="h-8 w-8 text-primary-color" />
+                </div>
+                <CardTitle className="font-title text-xl mb-4">App Development</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Define your objective and customer Persona</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Prepare your research survey questions</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Identify a portion of that persona to engage</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary-color" />
+                    <span className="text-sm">Keep survey informative</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
