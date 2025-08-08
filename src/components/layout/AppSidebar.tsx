@@ -36,7 +36,7 @@ const AppSidebar = () => {
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
   
   const getNavCls = ({ isActive: active }: { isActive: boolean }) =>
-    active ? 'bg-muted text-primary font-medium' : 'hover:bg-muted/50';
+    active ? 'bg-orange text-white-color font-medium' : 'hover:bg-grey-color text-black';
 
   const mainItems = [
     { title: 'Dashboard', url: '/dashboard', icon: Home },
@@ -54,16 +54,16 @@ const AppSidebar = () => {
   const collapsed = state === 'collapsed';
 
   return (
-    <Sidebar className={collapsed ? 'w-14' : 'w-60'} collapsible="icon">
-      <SidebarHeader className="border-b p-4">
+    <Sidebar className={`${collapsed ? 'w-14' : 'w-60'} bg-white-color border-r border-grey-color`} collapsible="icon">
+      <SidebarHeader className="border-b border-grey-color p-4 bg-white-color">
         {!collapsed && (
           <div className="flex items-center space-x-2">
-            <CheckSquare className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">TaskFlow</span>
+            <CheckSquare className="h-6 w-6 text-orange" />
+            <span className="font-bold text-lg text-black">TaskFlow</span>
           </div>
         )}
         {collapsed && (
-          <CheckSquare className="h-6 w-6 text-primary mx-auto" />
+          <CheckSquare className="h-6 w-6 text-orange mx-auto" />
         )}
       </SidebarHeader>
 
@@ -112,10 +112,10 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-4">
+      <SidebarFooter className="border-t border-grey-color p-4 bg-white-color">
         {!collapsed && profile && (
           <div className="mb-4">
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium text-black">
               {profile.first_name} {profile.last_name}
             </p>
           </div>
@@ -124,7 +124,7 @@ const AppSidebar = () => {
           variant="ghost"
           size="sm"
           onClick={handleSignOut}
-          className="w-full justify-start"
+          className="w-full justify-start text-black hover:bg-grey-color"
         >
           <LogOut className="mr-2 h-4 w-4" />
           {!collapsed && <span>Sign Out</span>}

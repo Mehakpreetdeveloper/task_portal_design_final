@@ -29,11 +29,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center justify-between border-b bg-background px-4">
+          <header className="h-14 flex items-center justify-between border-b bg-blue-color px-4">
             <div className="flex items-center">
               <SidebarTrigger />
               <div className="ml-4">
-                <h1 className="text-lg font-semibold text-foreground">TaskFlow</h1>
+                <h1 className="text-lg font-semibold text-white-color">TaskFlow</h1>
               </div>
             </div>
             
@@ -41,9 +41,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               {/* Notifications */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button variant="ghost" size="icon" className="relative text-white-color hover:bg-white-color/10">
                     <Bell className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-orange text-white-color text-xs rounded-full flex items-center justify-center">
                       3
                     </span>
                   </Button>
@@ -72,7 +72,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               {/* User Menu */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-white-color/10">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
@@ -115,7 +115,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               </Popover>
             </div>
           </header>
-          <main className="flex-1 p-6 bg-muted/10">
+          <main className="flex-1 p-6 bg-grey-color">
             {children}
           </main>
         </div>
