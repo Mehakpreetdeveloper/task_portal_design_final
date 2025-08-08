@@ -39,12 +39,12 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     /* Custom brand colors */
-    --primary-color: 16 98% 54%;
-    --dark-color: 0 0% 8%;
-    --secondary-color: 0 0% 38%;
-    --grey-color: 210 25% 97%;
-    --white-color: 0 0% 100%;
-    --blue: 196 82% 20%;
+    --primary-color: 16 98% 54%;       /* Main accent color (orange) #fd4a18 */
+    --dark-color: 0 0% 8%;             /* Dark background or headings #151515 */
+    --secondary-color: 0 0% 38%;       /* Text and secondary UI elements #616161 */
+    --grey-color: 210 25% 97%;         /* Light background for sections #F7F8F9 */
+    --white-color: 0 0% 100%;          /* White panels/cards #ffffff */
+    --blue-color: 196 82% 20%;         /* Blue highlights #08415c */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 8%;

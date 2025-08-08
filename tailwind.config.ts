@@ -68,7 +68,7 @@ export default {
 				'secondary-color': 'hsl(var(--secondary-color))',
 				'grey-color': 'hsl(var(--grey-color))',
 				'white-color': 'hsl(var(--white-color))',
-				'blue': 'hsl(var(--blue))'
+				'blue-color': 'hsl(var(--blue-color))'
 			},
 			fontFamily: {
 				body: ['Nunito Sans', 'sans-serif'],
