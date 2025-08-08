@@ -18,6 +18,12 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'nunito': ['Nunito Sans', 'sans-serif'],
+				'jost': ['Jost', 'sans-serif'],
+				'body': ['Nunito Sans', 'sans-serif'],
+				'title': ['Jost', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -64,6 +70,14 @@ export default {
 				info: {
 					DEFAULT: 'hsl(var(--info))',
 					foreground: 'hsl(var(--info-foreground))'
+				},
+				blue: {
+					DEFAULT: 'hsl(var(--blue))',
+					foreground: 'hsl(var(--blue-foreground))'
+				},
+				grey: {
+					DEFAULT: 'hsl(var(--grey))',
+					foreground: 'hsl(var(--grey-foreground))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
