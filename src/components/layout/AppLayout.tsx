@@ -29,7 +29,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center justify-between border-b bg-blue-color px-4">
+          <header className="flex items-center justify-between border-b bg-blue-color p-[0.6rem]">
             <div className="flex items-center">
               <SidebarTrigger />
               <div className="ml-4">

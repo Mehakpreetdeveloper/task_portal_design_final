@@ -54,20 +54,20 @@ const AppSidebar = () => {
   const collapsed = state === 'collapsed';
 
   return (
-    <Sidebar className={`${collapsed ? 'w-14' : 'w-60'} bg-white-color border-r border-grey-color`} collapsible="icon">
-      <SidebarHeader className="border-b border-grey-color p-4 bg-white-color">
+    <Sidebar className={`${collapsed ? 'w-14' : 'w-64'} bg-blue-color border-r border-grey-color`} collapsible="icon">
+      <SidebarHeader className="border-b border-grey-color p-[0.6rem] py-4 bg-blue-color">
         {!collapsed && (
           <div className="flex items-center space-x-2">
-            <CheckSquare className="h-6 w-6 text-orange" />
-            <span className="font-bold text-lg text-black">TaskFlow</span>
+            <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-6 w-6" />
+            <span className="font-bold text-lg text-primary">SmartzMinds Tasks</span>
           </div>
         )}
         {collapsed && (
-          <CheckSquare className="h-6 w-6 text-orange mx-auto" />
+          <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-6 w-auto" />
         )}
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="bg-blue-color">
         <SidebarGroup>
           <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -112,23 +112,23 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-grey-color p-4 bg-white-color">
+      <SidebarFooter className="border-t border-grey-color p-2 bg-blue-color">
         {!collapsed && profile && (
           <div className="mb-4">
-            <p className="text-sm font-medium text-black">
+            <p className="text-sm font-medium text-white-color">
               {profile.first_name} {profile.last_name}
             </p>
           </div>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSignOut}
-          className="w-full justify-start text-black hover:bg-grey-color"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          {!collapsed && <span>Sign Out</span>}
-        </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleSignOut}
+        className={`w-full text-white-color ${collapsed ? "justify-center px-2" : "justify-start px-3"}`}
+      >
+        <LogOut className={`${collapsed ? "" : "mr-2"} h-4 w-4`} />
+        {!collapsed && <span>Sign Out</span>}
+      </Button>
       </SidebarFooter>
     </Sidebar>
   );

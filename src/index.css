@@ -9,16 +9,16 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Main 5 color palette */
-    --orange: 16 98% 54%;              /* #fd4a18 */
-    --blue: 196 82% 20%;               /* #08415c */
+    --orange: 27 100% 53%;              /* #fd4a18 */
+    --blue: 200 85% 20%;               /* #08415c */
     --light-grey: 210 25% 97%;         /* #F7F8F9 */
     --white: 0 0% 100%;                /* #ffffff */
     --black: 0 0% 0%;                  /* #000000 */
 
     /* Background colors - using the 3 specified */
     --background: 210 25% 97%;         /* Light grey background */
-    --background-orange: 16 98% 54%;   /* Orange background */
-    --background-blue: 196 82% 20%;    /* Blue background */
+    --background-orange: 27 100% 53%;   /* Orange background */
+    --background-blue: 200 85% 20%;    /* Blue background */
 
     /* Semantic color mapping */
     --foreground: 0 0% 0%;             /* Black text */
@@ -26,37 +26,37 @@ All colors MUST be HSL.
     --card-foreground: 0 0% 0%;        /* Black text on cards */
     --popover: 0 0% 100%;              /* White popover */
     --popover-foreground: 0 0% 0%;     /* Black text on popover */
-    --primary: 16 98% 54%;             /* Orange primary */
+    --primary: 27 100% 53%;             /* Orange primary */
     --primary-foreground: 0 0% 100%;   /* White text on orange */
-    --secondary: 196 82% 20%;          /* Blue secondary */
+    --secondary: 200 85% 20%;          /* Blue secondary */
     --secondary-foreground: 0 0% 100%; /* White text on blue */
     --muted: 210 25% 97%;              /* Light grey muted */
     --muted-foreground: 0 0% 0%;       /* Black text on muted */
-    --accent: 16 98% 54%;              /* Orange accent */
+    --accent: 27 100% 53%;              /* Orange accent */
     --accent-foreground: 0 0% 100%;    /* White text on accent */
     --destructive: 0 84.2% 60.2%;      /* Keep red for destructive */
     --destructive-foreground: 0 0% 100%;
     --border: 210 25% 97%;             /* Light grey borders */
     --input: 0 0% 100%;                /* White inputs */
-    --ring: 16 98% 54%;                /* Orange focus ring */
+    --ring: 27 100% 53%;                /* Orange focus ring */
     --radius: 0.5rem;
 
     /* Legacy brand colors for compatibility */
-    --primary-color: 16 98% 54%;       /* Orange #fd4a18 */
+    --primary-color: 27 100% 53%;       /* Orange #fd4a18 */
     --dark-color: 0 0% 0%;             /* Black #000000 */
-    --secondary-color: 196 82% 20%;    /* Blue #08415c */
+    --secondary-color: 200 85% 20%;    /* Blue #08415c */
     --grey-color: 210 25% 97%;         /* Light grey #F7F8F9 */
     --white-color: 0 0% 100%;          /* White #ffffff */
-    --blue-color: 196 82% 20%;         /* Blue #08415c */
+    --blue-color: 200 85% 20%;         /* Blue #08415c */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 8%;
-    --sidebar-primary: 16 98% 54%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 25% 97%;
-    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-primary: 27 100% 53%;
+    --sidebar-primary-foreground: 0 0% 8%;
+    --sidebar-accent: 27 100% 53%;
+    --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 210 25% 97%;
-    --sidebar-ring: 16 98% 54%;
+    --sidebar-ring: 27 100% 53%;
   }
 
   .dark {
