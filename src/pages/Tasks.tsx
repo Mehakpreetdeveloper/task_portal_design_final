@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,7 +70,7 @@ const Tasks = () => {
   const [taskAssignments, setTaskAssignments] = useState<{[key: string]: TaskAssignment[]}>({});
   const [taskAttachments, setTaskAttachments] = useState<{[key: string]: TaskAttachment[]}>({});
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [uploadingFiles, setUploadingFiles] = useState(false);
@@ -417,7 +417,7 @@ const Tasks = () => {
       }
 
       fetchTasks();
-      setDialogOpen(false);
+      setDrawerOpen(false);
       setEditingTask(null);
       setFormData({
         title: '',
@@ -457,7 +457,7 @@ const Tasks = () => {
       assignment_description: '',
     });
     setSelectedFiles(null);
-    setDialogOpen(true);
+    setDrawerOpen(true);
   };
 
   const handleDelete = async (taskId: string) => {
@@ -644,35 +644,54 @@ const Tasks = () => {
             Manage your tasks and track your progress.
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingTask(null);
-              setFormData({
-                title: '',
-                description: '',
-                status: 'todo',
-                priority: 'medium',
-                due_date: '',
-                project_ids: [],
-                assigned_users: [],
-                assignment_description: '',
-              });
-              setSelectedFiles(null);
-            }}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Task
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTask ? 'Edit Task' : 'Create New Task'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingTask ? 'Update the task details.' : 'Create a new task to track your work.'}
-              </DialogDescription>
-            </DialogHeader>
+        <Button onClick={() => {
+          setEditingTask(null);
+          setFormData({
+            title: '',
+            description: '',
+            status: 'todo',
+            priority: 'medium',
+            due_date: '',
+            project_ids: [],
+            assigned_users: [],
+            assignment_description: '',
+          });
+          setSelectedFiles(null);
+          setDrawerOpen(true);
+        }}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Task
+        </Button>
+      </div>
+
+      {/* Task Edit/Create Sliding Panel */}
+      {drawerOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className={`fixed top-0 right-0 h-full w-[600px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {editingTask ? 'Edit Task' : 'Create New Task'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {editingTask ? 'Update the task details.' : 'Create a new task to track your work.'}
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setDrawerOpen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="animate-in fade-in duration-300 delay-150">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Task Title</Label>
@@ -881,7 +900,7 @@ const Tasks = () => {
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={uploadingFiles}>
@@ -889,9 +908,11 @@ const Tasks = () => {
                 </Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Filters */}
       <Card>
@@ -982,7 +1003,7 @@ const Tasks = () => {
               <p className="text-sm text-muted-foreground">
                 Get started by creating your first task.
               </p>
-              <Button onClick={() => setDialogOpen(true)} className="mt-4">
+              <Button onClick={() => setDrawerOpen(true)} className="mt-4">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Task
               </Button>
@@ -1315,20 +1336,40 @@ const Tasks = () => {
         </Card>
       )}
 
-      {/* Comments Dialog */}
-      <Dialog open={commentsDialogOpen} onOpenChange={setCommentsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Task Comments</DialogTitle>
-            <DialogDescription>
-              View and add comments for this task.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedTaskForComments && (
-            <TaskComments taskId={selectedTaskForComments} />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Comments Panel */}
+      {commentsDialogOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+            onClick={() => setCommentsDialogOpen(false)}
+          />
+          <div className={`fixed top-0 right-0 h-full w-[500px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${commentsDialogOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold">Task Comments</h2>
+                  <p className="text-sm text-muted-foreground">
+                    View and add comments for this task.
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setCommentsDialogOpen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="animate-in fade-in duration-300 delay-150">
+                {selectedTaskForComments && (
+                  <TaskComments taskId={selectedTaskForComments} />
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
