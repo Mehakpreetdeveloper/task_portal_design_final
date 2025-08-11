@@ -668,7 +668,7 @@ const Tasks = () => {
       {drawerOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 z-[100] transition-opacity duration-300"
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
             onClick={() => setDrawerOpen(false)}
           />
           <div className={`fixed top-0 right-0 h-full w-[600px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
