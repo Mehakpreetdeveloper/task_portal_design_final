@@ -257,7 +257,7 @@ const Team = () => {
       </div>
 
       {/* Status Update Section for Current User */}
-      {user && (
+      {/* {user && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Update Your Status</CardTitle>
@@ -288,7 +288,7 @@ const Team = () => {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Filters */}
       <Card>

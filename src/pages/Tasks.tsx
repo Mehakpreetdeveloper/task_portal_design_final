@@ -82,6 +82,17 @@ const Tasks = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterAssignedUser, setFilterAssignedUser] = useState<string>('all');
   
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto"; 
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [drawerOpen]);
+
   // View states
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
@@ -668,10 +679,10 @@ const Tasks = () => {
       {drawerOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+            className="fixed inset-0 bg-black/40 transition-opacity duration-300"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className={`fixed top-0 right-0 h-full w-[600px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className={`fixed top-0 right-0 h-full !pb-[50px] !mt-[60px] w-[550px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -692,229 +703,232 @@ const Tasks = () => {
                 </Button>
               </div>
               <div className="animate-in fade-in duration-300 delay-150">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Task Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Enter task title"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Enter task description"
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: 'todo' | 'in_progress' | 'in_review' | 'done') =>
-                      setFormData({ ...formData, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todo">To Do</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="in_review">In Review</SelectItem>
-                      <SelectItem value="done">Done</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select
-                    value={formData.priority}
-                    onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') =>
-                      setFormData({ ...formData, priority: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="due_date">Due Date</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                />
-              </div>
-              
-              {!editingTask && (
-                <div className="space-y-2">
-                  <Label>Assign to Projects (Optional)</Label>
-                  <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
-                    {projects.map((project) => (
-                      <div key={project.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`project-${project.id}`}
-                          checked={formData.project_ids.includes(project.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({
-                                ...formData,
-                                project_ids: [...formData.project_ids, project.id]
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                project_ids: formData.project_ids.filter(id => id !== project.id)
-                              });
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        <Label htmlFor={`project-${project.id}`} className="text-sm">
-                          {project.name}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>
-                  Assign to Users {editingTask ? '(Update Assignments)' : '(Required)'}
-                </Label>
-                <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
-                  {users.map((userProfile) => (
-                    <div key={userProfile.user_id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`assign-user-${userProfile.user_id}`}
-                        checked={formData.assigned_users.includes(userProfile.user_id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              assigned_users: [...formData.assigned_users, userProfile.user_id]
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              assigned_users: formData.assigned_users.filter(id => id !== userProfile.user_id)
-                            });
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <Label htmlFor={`assign-user-${userProfile.user_id}`} className="text-sm">
-                        <span className="font-medium">
-                          {userProfile.first_name} {userProfile.last_name}
-                        </span>
-                        {userProfile.primary_role && (
-                          <span className="ml-2 text-xs text-muted-foreground capitalize">
-                            ({userProfile.primary_role.replace('_', ' ')})
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {!editingTask && (
-                <div className="space-y-2">
-                  <Label htmlFor="assignment_description">Assignment Note (Optional)</Label>
-                  <Textarea
-                    id="assignment_description"
-                    value={formData.assignment_description}
-                    onChange={(e) => setFormData({ ...formData, assignment_description: e.target.value })}
-                    placeholder="Add a note about this assignment"
-                    rows={2}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="attachments">Attachments</Label>
-                
-                {editingTask && taskAttachments[editingTask.id] && taskAttachments[editingTask.id].length > 0 && (
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Current Attachments</Label>
-                    <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
-                      {taskAttachments[editingTask.id].map((attachment) => (
-                        <div key={attachment.id} className="flex items-center justify-between text-sm">
-                          <span className="truncate">{attachment.file_name}</span>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => downloadAttachment(attachment)}
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteAttachment(attachment)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                    <Label htmlFor="title">Task Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="Enter task title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Enter task description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value: 'todo' | 'in_progress' | 'in_review' | 'done') =>
+                          setFormData({ ...formData, status: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="in_review">In Review</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select
+                        value={formData.priority}
+                        onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') =>
+                          setFormData({ ...formData, priority: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="due_date">Due Date</Label>
+                    <Input
+                      id="due_date"
+                      type="date"
+                      value={formData.due_date}
+                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    />
+                  </div>
+                  
+                  {!editingTask && (
+                    <div className="space-y-2">
+                      <Label>Assign to Projects (Optional)</Label>
+                      <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
+                        {projects.map((project) => (
+                          <div key={project.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`project-${project.id}`}
+                              checked={formData.project_ids.includes(project.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({
+                                    ...formData,
+                                    project_ids: [...formData.project_ids, project.id]
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    project_ids: formData.project_ids.filter(id => id !== project.id)
+                                  });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <Label htmlFor={`project-${project.id}`} className="text-sm">
+                              {project.name}
+                            </Label>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>
+                      Assign to Users {editingTask ? '(Update Assignments)' : '(Required)'}
+                    </Label>
+                    <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
+                      {users.map((userProfile) => (
+                        <div key={userProfile.user_id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`assign-user-${userProfile.user_id}`}
+                            checked={formData.assigned_users.includes(userProfile.user_id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  assigned_users: [...formData.assigned_users, userProfile.user_id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  assigned_users: formData.assigned_users.filter(id => id !== userProfile.user_id)
+                                });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <Label htmlFor={`assign-user-${userProfile.user_id}`} className="text-sm">
+                            <span className="font-medium">
+                              {userProfile.first_name} {userProfile.last_name}
+                            </span>
+                            {userProfile.primary_role && (
+                              <span className="ml-2 text-xs text-muted-foreground capitalize">
+                                ({userProfile.primary_role.replace('_', ' ')})
+                              </span>
+                            )}
+                          </Label>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
 
-                <Input
-                  id="attachments"
-                  type="file"
-                  multiple
-                  onChange={(e) => setSelectedFiles(e.target.files)}
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
-                />
-                {selectedFiles && selectedFiles.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    {selectedFiles.length} new file(s) selected
+                  {!editingTask && (
+                    <div className="space-y-2">
+                      <Label htmlFor="assignment_description">Assignment Note (Optional)</Label>
+                      <Textarea
+                        id="assignment_description"
+                        value={formData.assignment_description}
+                        onChange={(e) => setFormData({ ...formData, assignment_description: e.target.value })}
+                        placeholder="Add a note about this assignment"
+                        rows={2}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="attachments">Attachments</Label>
+                    
+                    {editingTask && taskAttachments[editingTask.id] && taskAttachments[editingTask.id].length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Current Attachments</Label>
+                        <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
+                          {taskAttachments[editingTask.id].map((attachment) => (
+                            <div key={attachment.id} className="flex items-center justify-between text-sm">
+                              <span className="truncate">{attachment.file_name}</span>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => downloadAttachment(attachment)}
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteAttachment(attachment)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <Input
+                      id="attachments"
+                      type="file"
+                      multiple
+                      onChange={(e) => setSelectedFiles(e.target.files)}
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                    />
+                    {selectedFiles && selectedFiles.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        {selectedFiles.length} new file(s) selected
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={uploadingFiles}>
+                      {uploadingFiles ? 'Uploading...' : editingTask ? 'Update' : 'Create'} Task
+                    </Button>
+                  </div>
+                </form>
+                
+                {/* Separator line */}
+                    <hr className="my-6 border-t border-gray-300" />
+
+                {/* Comments Section - Only show when editing existing task */}
+                {editingTask && (
+                  <div className="mt-8 pt-6 border-t">
+                    <TaskComments taskId={editingTask.id} />
                   </div>
                 )}
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={uploadingFiles}>
-                  {uploadingFiles ? 'Uploading...' : editingTask ? 'Update' : 'Create'} Task
-                </Button>
-              </div>
-            </form>
-
-            {/* Comments Section - Only show when editing existing task */}
-            {editingTask && (
-              <div className="mt-8 pt-6 border-t">
-                <TaskComments taskId={editingTask.id} />
-              </div>
-            )}
               </div>
             </div>
           </div>
