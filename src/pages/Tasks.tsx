@@ -908,6 +908,13 @@ const Tasks = () => {
                 </Button>
               </div>
             </form>
+
+            {/* Comments Section - Only show when editing existing task */}
+            {editingTask && (
+              <div className="mt-8 pt-6 border-t">
+                <TaskComments taskId={editingTask.id} />
+              </div>
+            )}
               </div>
             </div>
           </div>
@@ -1154,9 +1161,9 @@ const Tasks = () => {
                       size="sm"
                       onClick={() => {
                         setSelectedTaskForComments(task.id);
-                        setCommentsDialogOpen(true);
+                        handleEdit(task);
                       }}
-                      title="View Comments"
+                      title="Edit & Comments"
                     >
                       <MessageCircle className="h-4 w-4" />
                     </Button>
@@ -1287,9 +1294,9 @@ const Tasks = () => {
                             size="sm"
                             onClick={() => {
                               setSelectedTaskForComments(task.id);
-                              setCommentsDialogOpen(true);
+                              handleEdit(task);
                             }}
-                            title="View Comments"
+                            title="Edit & Comments"
                           >
                             <MessageCircle className="h-4 w-4" />
                           </Button>
@@ -1336,40 +1343,6 @@ const Tasks = () => {
         </Card>
       )}
 
-      {/* Comments Panel */}
-      {commentsDialogOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
-            onClick={() => setCommentsDialogOpen(false)}
-          />
-          <div className={`fixed top-0 right-0 h-full w-[500px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${commentsDialogOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">Task Comments</h2>
-                  <p className="text-sm text-muted-foreground">
-                    View and add comments for this task.
-                  </p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setCommentsDialogOpen(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="animate-in fade-in duration-300 delay-150">
-                {selectedTaskForComments && (
-                  <TaskComments taskId={selectedTaskForComments} />
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 };
