@@ -1228,11 +1228,10 @@ const Tasks = () => {
           ))}
         </div>
       ) : (
-        // List View - Responsive Design
+        // List View
         <Card>
           <CardContent className="p-0">
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="border-b bg-muted/50">
                   <tr>
@@ -1274,12 +1273,12 @@ const Tasks = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
+                        <Badge variant={getStatusBadgeColor(task.status)}>
                           {task.status.replace('_', ' ')}
                         </Badge>
                       </td>
                       <td className="p-4">
-                        <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
+                        <Badge variant={getPriorityBadgeColor(task.priority)}>
                           {task.priority}
                         </Badge>
                       </td>
@@ -1317,7 +1316,6 @@ const Tasks = () => {
                               handleEdit(task);
                             }}
                             title="Edit & Comments"
-                            className="h-8 w-8 p-0"
                           >
                             <MessageCircle className="h-4 w-4" />
                           </Button>
@@ -1326,161 +1324,39 @@ const Tasks = () => {
                             size="sm"
                             onClick={() => handleEdit(task)}
                             title="Edit Task"
-                            className="h-8 w-8 p-0"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {canDelete && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" title="Delete Task" className="h-8 w-8 p-0">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Task</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this task? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(task.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile/Tablet Card View */}
-            <div className="lg:hidden">
-              {filteredTasks.map((task, index) => (
-                <div key={task.id} className={`p-4 ${index !== filteredTasks.length - 1 ? 'border-b' : ''}`}>
-                  <div className="space-y-3">
-                    {/* Task Title and Toggle */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3 flex-1 min-w-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleComplete(task)}
-                          className="p-0 h-5 w-5 mt-0.5 flex-shrink-0"
-                        >
-                          {task.status === 'done' ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                        <div className="min-w-0 flex-1">
-                          <h4 className={`text-sm font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
-                            {task.title}
-                          </h4>
-                          {task.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {task.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTaskForComments(task.id);
-                            handleEdit(task);
-                          }}
-                          title="Edit & Comments"
-                          className="h-7 w-7 p-0"
-                        >
-                          <MessageCircle className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(task)}
-                          title="Edit Task"
-                          className="h-7 w-7 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        {canDelete && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Delete Task" className="h-7 w-7 p-0">
-                                <Trash2 className="h-3 w-3" />
+                              <Button variant="ghost" size="sm" title="Delete Task">
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent className="w-[90vw] max-w-md">
+                            <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle className="text-base">Delete Task</AlertDialogTitle>
-                                <AlertDialogDescription className="text-sm">
+                                <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                                <AlertDialogDescription>
                                   Are you sure you want to delete this task? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
-                              <AlertDialogFooter className="flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
-                                <AlertDialogCancel className="w-full md:w-auto">Cancel</AlertDialogCancel>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDelete(task.id)}
-                                  className="w-full md:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Delete
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Status and Priority */}
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
-                        {task.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
-                        {task.priority}
-                      </Badge>
-                    </div>
-
-                    {/* Assigned Users */}
-                    {taskAssignments[task.id] && taskAssignments[task.id].length > 0 && (
-                      <div className="space-y-1">
-                        <div className="text-xs font-medium text-muted-foreground">Assigned to:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {taskAssignments[task.id].map((assignment) => (
-                            <div key={assignment.id} className="flex items-center space-x-1 bg-muted p-1 rounded text-xs">
-                              <User className="h-3 w-3" />
-                              <span>{assignment.profiles.first_name} {assignment.profiles.last_name}</span>
-                            </div>
-                          ))}
                         </div>
-                      </div>
-                    )}
-
-                    {/* Due Date */}
-                    {task.due_date && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="mr-1 h-3 w-3" />
-                        Due: {new Date(task.due_date).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
