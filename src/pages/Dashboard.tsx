@@ -110,48 +110,48 @@ const Dashboard = () => {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {statCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <CardTitle className="text-xs md:text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className={`h-3 w-3 md:h-4 md:w-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
+              <div className="text-xl md:text-2xl font-bold">{stat.value}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">{stat.description}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="grid gap-4 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
+            <CardDescription className="text-sm">
               Your latest task updates and project changes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex items-center space-x-3 md:space-x-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Task completed</p>
                   <p className="text-xs text-muted-foreground">2 hours ago</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
+              <div className="flex items-center space-x-3 md:space-x-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">New project created</p>
                   <p className="text-xs text-muted-foreground">5 hours ago</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <div className="flex-1">
+              <div className="flex items-center space-x-3 md:space-x-4">
+                <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Task assigned</p>
                   <p className="text-xs text-muted-foreground">1 day ago</p>
                 </div>
@@ -160,27 +160,27 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
+        <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
+            <CardDescription className="text-sm">
               Common tasks to get you started
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-              <div className="font-medium">Create New Task</div>
-              <div className="text-sm text-muted-foreground">Add a new task to your projects</div>
+            <button className="w-full text-left p-2 md:p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div className="font-medium text-sm">Create New Task</div>
+              <div className="text-xs text-muted-foreground">Add a new task to your projects</div>
             </button>
             {(isAdmin || isProjectManager) && (
-              <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                <div className="font-medium">Create New Project</div>
-                <div className="text-sm text-muted-foreground">Start a new project</div>
+              <button className="w-full text-left p-2 md:p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                <div className="font-medium text-sm">Create New Project</div>
+                <div className="text-xs text-muted-foreground">Start a new project</div>
               </button>
             )}
-            <button className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-              <div className="font-medium">View Calendar</div>
-              <div className="text-sm text-muted-foreground">Check upcoming deadlines</div>
+            <button className="w-full text-left p-2 md:p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+              <div className="font-medium text-sm">View Calendar</div>
+              <div className="text-xs text-muted-foreground">Check upcoming deadlines</div>
             </button>
           </CardContent>
         </Card>

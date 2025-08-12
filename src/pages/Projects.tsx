@@ -372,28 +372,31 @@ const Projects = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Projects</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage your projects and collaborate with your team.
           </p>
         </div>
         {canCreateProjects && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => {
-                setEditingProject(null);
-                setFormData({ 
-                  name: '', 
-                  description: '', 
-                  status: 'active',
-                  start_date: '',
-                  end_date: '',
-                  assigned_users: [],
-                });
-              }}>
+              <Button 
+                onClick={() => {
+                  setEditingProject(null);
+                  setFormData({ 
+                    name: '', 
+                    description: '', 
+                    status: 'active',
+                    start_date: '',
+                    end_date: '',
+                    assigned_users: [],
+                  });
+                }}
+                className="w-full md:w-auto"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 New Project
               </Button>
@@ -549,44 +552,45 @@ const Projects = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => (
             <Card key={project.id}>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                    <Badge variant={getStatusBadgeColor(project.status)}>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <CardTitle className="text-base md:text-lg truncate">{project.name}</CardTitle>
+                    <Badge variant={getStatusBadgeColor(project.status)} className="text-xs">
                       {project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('_', ' ')}
                     </Badge>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-1 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(project)}
+                      className="h-8 w-8 p-0"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                     {(isAdmin || isProjectManager) && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="w-[90vw] max-w-md">
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogTitle className="text-base">Delete Project</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm">
                               Are you sure you want to delete this project? This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogFooter className="flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
+                            <AlertDialogCancel className="w-full md:w-auto">Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(project.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              className="w-full md:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Delete
                             </AlertDialogAction>
@@ -597,16 +601,16 @@ const Projects = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="pt-0">
+                <div className="space-y-2 md:space-y-3">
                   {project.description && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
                       {project.description}
                     </p>
                   )}
-                  <div className="space-y-2">
+                  <div className="space-y-1 md:space-y-2">
                     {(project.start_date || project.end_date) && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[10px] md:text-xs text-muted-foreground">
                         {project.start_date && (
                           <div>Start: {new Date(project.start_date).toLocaleDateString()}</div>
                         )}
@@ -615,10 +619,10 @@ const Projects = () => {
                         )}
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 text-[10px] md:text-xs text-muted-foreground">
                       <div className="flex items-center">
                         <Calendar className="mr-1 h-3 w-3" />
-                        Created {new Date(project.created_at).toLocaleDateString()}
+                        <span className="truncate">Created {new Date(project.created_at).toLocaleDateString()}</span>
                       </div>
                       <Button 
                         variant="outline" 
@@ -627,6 +631,7 @@ const Projects = () => {
                           setSelectedProject(project);
                           setMembersDialogOpen(true);
                         }}
+                        className="h-7 text-xs w-full md:w-auto"
                       >
                         <Users className="mr-1 h-3 w-3" />
                         Members ({projectMembers[project.id]?.length || 0})

@@ -58,17 +58,18 @@ const AppSidebar = () => {
 
   return (
     <Sidebar className={`${collapsed ? 'w-14' : 'w-64'} bg-blue-color`} collapsible="icon">
-      <SidebarHeader className="border-grey-color p-[0.6rem] py-4 bg-blue-color">
+      <SidebarHeader className="border-grey-color p-2 md:p-[0.6rem] py-3 md:py-4 bg-blue-color">
         {!collapsed && (
           <div className="flex items-center space-x-2">
-            <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-6 w-6" />
-            <span className="font-bold text-lg text-primary">SmartzMinds Tasks</span>
-            <SidebarTrigger/>
+            <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-6" />
+            <span className="font-bold text-sm md:text-lg text-primary hidden sm:block">SmartzMinds Tasks</span>
+            <span className="font-bold text-sm md:text-lg text-primary sm:hidden">Tasks</span>
+            <SidebarTrigger className="hidden md:block"/>
           </div>
         )}
         {collapsed && (
         <SidebarTrigger noHoverBg>
-          <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-6 w-auto" />
+          <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-auto" />
         </SidebarTrigger>
         )}
       </SidebarHeader>
@@ -94,8 +95,8 @@ const AppSidebar = () => {
 
       <SidebarFooter className="p-2 bg-blue-color">
         {!collapsed && profile && (
-          <div className="mb-4">
-            <p className="text-sm font-medium text-white-color">
+          <div className="mb-2 md:mb-4">
+            <p className="text-xs md:text-sm font-medium text-white-color truncate">
               {profile.first_name} {profile.last_name}
             </p>
           </div>
@@ -104,9 +105,9 @@ const AppSidebar = () => {
         variant="ghost"
         size="sm"
         onClick={handleSignOut}
-        className={`w-full text-white-color ${collapsed ? "justify-center px-2" : "justify-start px-3"}`}
+        className={`w-full text-white-color text-xs md:text-sm ${collapsed ? "justify-center px-2" : "justify-start px-3"}`}
       >
-        <LogOut className={`${collapsed ? "" : "mr-2"} h-4 w-4`} />
+        <LogOut className={`${collapsed ? "" : "mr-2"} h-3 w-3 md:h-4 md:w-4`} />
         {!collapsed && <span>Sign Out</span>}
       </Button>
       </SidebarFooter>

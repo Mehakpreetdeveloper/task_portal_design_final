@@ -645,31 +645,34 @@ const Tasks = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl md:text-3xl font-bold">
             {hasRole('user') || isTeamLead ? 'My Tasks' : 'Tasks'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage your tasks and track your progress.
           </p>
         </div>
-        <Button onClick={() => {
-          setEditingTask(null);
-          setFormData({
-            title: '',
-            description: '',
-            status: 'todo',
-            priority: 'medium',
-            due_date: '',
-            project_ids: [],
-            assigned_users: [],
-            assignment_description: '',
-          });
-          setSelectedFiles(null);
-          setDrawerOpen(true);
-        }}>
+        <Button 
+          onClick={() => {
+            setEditingTask(null);
+            setFormData({
+              title: '',
+              description: '',
+              status: 'todo',
+              priority: 'medium',
+              due_date: '',
+              project_ids: [],
+              assigned_users: [],
+              assignment_description: '',
+            });
+            setSelectedFiles(null);
+            setDrawerOpen(true);
+          }}
+          className="w-full md:w-auto"
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Task
         </Button>
@@ -938,14 +941,14 @@ const Tasks = () => {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+          <CardTitle className="text-base md:text-lg">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <div className="space-y-2">
-              <Label>Filter by Status</Label>
+              <Label className="text-sm">Filter by Status</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -958,9 +961,9 @@ const Tasks = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Filter by Assigned User</Label>
+              <Label className="text-sm">Filter by Assigned User</Label>
               <Select value={filterAssignedUser} onValueChange={setFilterAssignedUser}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="All users" />
                 </SelectTrigger>
                 <SelectContent>
@@ -974,9 +977,9 @@ const Tasks = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Filter by Project</Label>
+              <Label className="text-sm">Filter by Project</Label>
               <Select value={filterProject} onValueChange={setFilterProject}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="All projects" />
                 </SelectTrigger>
                 <SelectContent>
@@ -990,25 +993,25 @@ const Tasks = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>View Mode</Label>
+              <Label className="text-sm">View Mode</Label>
               <div className="flex space-x-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={viewMode === 'card' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('card')}
-                  className="flex-1"
+                  className="flex-1 text-xs md:text-sm h-8"
                 >
-                  <LayoutGrid className="h-4 w-4 mr-1" />
-                  Card
+                  <LayoutGrid className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                  <span className="hidden sm:inline">Card</span>
                 </Button>
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className="flex-1"
+                  className="flex-1 text-xs md:text-sm h-8"
                 >
-                  <List className="h-4 w-4 mr-1" />
-                  List
+                  <List className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                  <span className="hidden sm:inline">List</span>
                 </Button>
               </div>
             </div>
@@ -1032,31 +1035,31 @@ const Tasks = () => {
           </CardContent>
         </Card>
       ) : viewMode === 'card' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
           {filteredTasks.map((task) => (
             <Card key={task.id}>
-              <CardContent className="pt-6">
+              <CardContent className="p-4 md:pt-6">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 flex-1">
+                  <div className="flex items-start space-x-2 md:space-x-3 flex-1">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleToggleComplete(task)}
-                      className="p-0 h-6 w-6"
+                      className="p-0 h-5 w-5 md:h-6 md:w-6 flex-shrink-0"
                     >
                       {task.status === 'done' ? (
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                       ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground" />
+                        <Circle className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                       )}
                     </Button>
-                    <div className="flex-1 space-y-3">
+                    <div className="flex-1 space-y-2 md:space-y-3 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <h3 className={`font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                        <h3 className={`text-sm md:text-base font-medium truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
                           {task.title}
                         </h3>
                       </div>
-                      <div className="flex items-center space-x-2 mt-2">
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
                         {canUpdateStatus(task) ? (
                           <Select
                             value={task.status}
@@ -1084,7 +1087,7 @@ const Tasks = () => {
                               }
                             }}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-24 md:w-32 h-7 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1095,16 +1098,16 @@ const Tasks = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant={getStatusBadgeColor(task.status)}>
+                          <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
                             {task.status.replace('_', ' ')}
                           </Badge>
                         )}
-                        <Badge variant={getPriorityBadgeColor(task.priority)}>
+                        <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
                           {task.priority}
                         </Badge>
                       </div>
                       {task.description && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
                           {task.description}
                         </p>
                       )}
@@ -1169,7 +1172,7 @@ const Tasks = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-1 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1178,23 +1181,25 @@ const Tasks = () => {
                         handleEdit(task);
                       }}
                       title="Edit & Comments"
+                      className="h-8 w-8 p-0"
                     >
-                      <MessageCircle className="h-4 w-4" />
+                      <MessageCircle className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                     {(canEdit || isCurrentUserAssigned(task.id)) && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(task)}
+                        className="h-8 w-8 p-0"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                     )}
                     {canDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
