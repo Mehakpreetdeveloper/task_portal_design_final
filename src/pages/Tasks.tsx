@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardFooter,CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1041,24 +1041,19 @@ const Tasks = () => {
               <CardContent className="p-4 md:pt-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-2 md:space-x-3 flex-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleComplete(task)}
-                      className="p-0 h-5 w-5 md:h-6 md:w-6 flex-shrink-0"
-                    >
-                      {task.status === 'done' ? (
-                        <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
-                      ) : (
-                        <Circle className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
-                      )}
-                    </Button>
+                    
+                    {/* Task Title and Priority */}
                     <div className="flex-1 space-y-2 md:space-y-3 min-w-0">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 justify-between">
                         <h3 className={`text-sm md:text-base font-medium truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
                           {task.title}
                         </h3>
+                        <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
+                          {task.priority}
+                        </Badge>
                       </div>
+
+                      {/* Task Status Selector */}
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         {canUpdateStatus(task) ? (
                           <Select
@@ -1069,14 +1064,11 @@ const Tasks = () => {
                                   .from('tasks')
                                   .update({ status: newStatus })
                                   .eq('id', task.id);
-
                                 if (error) throw error;
-
                                 toast({
                                   title: 'Status Updated',
                                   description: `Task status changed to ${newStatus.replace('_', ' ')}.`,
                                 });
-
                                 fetchTasks();
                               } catch (error: any) {
                                 toast({
@@ -1102,16 +1094,8 @@ const Tasks = () => {
                             {task.status.replace('_', ' ')}
                           </Badge>
                         )}
-                        <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
-                          {task.priority}
-                        </Badge>
                       </div>
-                      {task.description && (
-                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
-                          {task.description}
-                        </p>
-                      )}
-                      
+
                       {/* Task Assignments */}
                       {taskAssignments[task.id] && taskAssignments[task.id].length > 0 && (
                         <div className="space-y-2">
@@ -1158,6 +1142,7 @@ const Tasks = () => {
                         </div>
                       )}
 
+                      {/* Due Date and Created At */}
                       <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                         {task.due_date && (
                           <div className="flex items-center">
@@ -1172,58 +1157,62 @@ const Tasks = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-1 flex-shrink-0">
+                </div>
+              </CardContent>
+
+              {/* Action Buttons in Footer */}
+              <CardFooter className="flex justify-between items-center p-4">
+                <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedTaskForComments(task.id);
+                      handleEdit(task);
+                    }}
+                    title="Edit & Comments"
+                    className="h-8 w-8 p-0"
+                  >
+                    <MessageCircle className="h-3 w-3 md:h-4 md:w-4" />
+                  </Button>
+                  {(canEdit || isCurrentUserAssigned(task.id)) && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setSelectedTaskForComments(task.id);
-                        handleEdit(task);
-                      }}
-                      title="Edit & Comments"
+                      onClick={() => handleEdit(task)}
                       className="h-8 w-8 p-0"
                     >
-                      <MessageCircle className="h-3 w-3 md:h-4 md:w-4" />
+                      <Edit className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
-                    {(canEdit || isCurrentUserAssigned(task.id)) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(task)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-3 w-3 md:h-4 md:w-4" />
-                      </Button>
-                    )}
-                    {canDelete && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Task</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this task? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(task.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
+                  )}
+                  {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this task? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(task.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
-              </CardContent>
+              </CardFooter>
             </Card>
           ))}
         </div>
@@ -1273,9 +1262,45 @@ const Tasks = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <Badge variant={getStatusBadgeColor(task.status)}>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
+                        {canUpdateStatus(task) ? (
+                          <Select
+                            value={task.status}
+                            onValueChange={async (newStatus: 'todo' | 'in_progress' | 'in_review' | 'done') => {
+                              try {
+                                const { error } = await supabase
+                                  .from('tasks')
+                                  .update({ status: newStatus })
+                                  .eq('id', task.id);
+                                if (error) throw error;
+                                toast({
+                                  title: 'Status Updated',
+                                  description: `Task status changed to ${newStatus.replace('_', ' ')}.`,
+                                });
+                                fetchTasks();
+                              } catch (error: any) {
+                                toast({
+                                  title: 'Error',
+                                  description: error.message,
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-24 md:w-32 h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="todo">To Do</SelectItem>
+                              <SelectItem value="in_progress">In Progress</SelectItem>
+                              <SelectItem value="in_review">In Review</SelectItem>
+                              <SelectItem value="done">Done</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
+                            {task.status.replace('_', ' ')}
+                          </Badge>
+                        )}
                       </td>
                       <td className="p-4">
                         <Badge variant={getPriorityBadgeColor(task.priority)}>

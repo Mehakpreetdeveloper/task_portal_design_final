@@ -27,12 +27,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 return (
   <SidebarProvider>
     <div className="min-h-screen flex w-full">
-      <AppSidebar />
       <div className="flex-1 flex flex-col">
         {/* Fixed Header */}
-        <header className="flex items-center justify-between border-b bg-blue-color p-2 md:p-[0.6rem] sticky top-0 z-10">
+        <header className="flex items-center justify-between border-b bg-blue-color p-2 md:p-[0.6rem] sticky top-0 z-50">
           <div className="flex items-center">
-            <SidebarTrigger className="md:hidden text-white-color hover:bg-white-color/10" />
+            <SidebarTrigger className="mr-2" />
+            <img src="sm-logo.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-6" />
+            <span className="font-bold text-sm md:text-lg text-primary">SmartzMinds Tasks</span>
           </div>
           
           <div className="flex items-center gap-2 md:gap-3">
@@ -115,9 +116,15 @@ return (
         </header>
 
         {/* Scrollable Main */}
-        <main className="flex-1 p-3 md:p-6 bg-grey-color overflow-y-auto">
-          {children}
-        </main>
+        <div className="flex min-h-screen">
+          {/* Sidebar */}
+          <AppSidebar /> 
+
+          {/* Main Content */}
+          <main className="flex-1 p-3 md:p-6 bg-grey-color overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   </SidebarProvider>

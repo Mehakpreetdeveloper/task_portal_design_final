@@ -57,22 +57,23 @@ const AppSidebar = () => {
   const collapsed = state === 'collapsed';
 
   return (
-    <Sidebar className={`${collapsed ? 'w-14' : 'w-64'} bg-blue-color`} collapsible="icon">
-      <SidebarHeader className="border-grey-color p-2 md:p-[0.6rem] py-3 md:py-4 bg-blue-color">
-        {!collapsed && (
-          <div className="flex items-center space-x-2">
-            <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-6" />
-            <span className="font-bold text-sm md:text-lg text-primary hidden sm:block">SmartzMinds Tasks</span>
-            <span className="font-bold text-sm md:text-lg text-primary sm:hidden">Tasks</span>
-            <SidebarTrigger className="hidden md:block"/>
-          </div>
-        )}
-        {collapsed && (
-        <SidebarTrigger noHoverBg>
-          <img src="/sm-fav-icon-1.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-auto" />
-        </SidebarTrigger>
-        )}
-      </SidebarHeader>
+    <Sidebar className={`${collapsed ? 'w-14' : 'w-[220px]'} bg-blue-color`} collapsible="icon">
+{/* This entire SidebarHeader will be hidden on mobile */}
+<SidebarHeader className="border-grey-color p-2 md:p-[0.6rem] py-3 md:py-4 bg-blue-color hidden md:block">
+  {!collapsed && (
+    <div className="flex items-center space-x-2">
+      <img src="sm-logo.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-6" />
+      <span className="font-bold text-sm md:text-lg text-primary sm:hidden">SmartzMinds Tasks</span>
+      <SidebarTrigger className="hidden md:block"/>
+    </div>
+  )}
+  {collapsed && (
+    <SidebarTrigger noHoverBg>
+      <img src="sm-logo.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-auto" />
+    </SidebarTrigger>
+  )}
+</SidebarHeader>
+
 
       <SidebarContent className="bg-blue-color">
         <SidebarGroup>
@@ -93,7 +94,7 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 bg-blue-color">
+      {/* <SidebarFooter className="p-2 bg-blue-color">
         {!collapsed && profile && (
           <div className="mb-2 md:mb-4">
             <p className="text-xs md:text-sm font-medium text-white-color truncate">
@@ -110,7 +111,7 @@ const AppSidebar = () => {
         <LogOut className={`${collapsed ? "" : "mr-2"} h-3 w-3 md:h-4 md:w-4`} />
         {!collapsed && <span>Sign Out</span>}
       </Button>
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 };

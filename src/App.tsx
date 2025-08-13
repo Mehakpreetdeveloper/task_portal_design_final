@@ -27,6 +27,7 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
+        {/* <BrowserRouter basename="/task_portal"> */}
         <BrowserRouter basename="/">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
