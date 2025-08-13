@@ -157,7 +157,10 @@ const Tasks = () => {
   const fetchTaskProjects = async (projectIds: string[]) => {
     try {
       const uniqueProjectIds = [...new Set(projectIds.filter(Boolean))];
-      if (uniqueProjectIds.length === 0) return;
+      if (uniqueProjectIds.length === 0) {
+        setTaskProjects({});
+        return;
+      }
 
       const { data, error } = await supabase
         .from('projects')
@@ -174,6 +177,7 @@ const Tasks = () => {
       setTaskProjects(projectsMap);
     } catch (error: any) {
       console.error('Error fetching task projects:', error.message);
+      setTaskProjects({});
     }
   };
 
@@ -1124,15 +1128,20 @@ const Tasks = () => {
                       </div>
 
                       {/* Project Information */}
-                      {(task as any).project_id && taskProjects[(task as any).project_id] && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground">Project:</div>
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Project:</div>
+                        {(task as any).project_id && taskProjects[(task as any).project_id] ? (
                           <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs">
                             <Building className="h-3 w-3" />
                             <span className="font-medium">{taskProjects[(task as any).project_id].name}</span>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="flex items-center space-x-1 bg-muted p-1.5 rounded text-xs text-muted-foreground">
+                            <Building className="h-3 w-3" />
+                            <span>No project assigned</span>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Task Assignments */}
                       {taskAssignments[task.id] && taskAssignments[task.id].length > 0 && (
@@ -1314,12 +1323,15 @@ const Tasks = () => {
                       </td>
                       <td className="p-4">
                         {(task as any).project_id && taskProjects[(task as any).project_id] ? (
-                          <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs">
-                            <Building className="h-3 w-3" />
-                            <span className="font-medium">{taskProjects[(task as any).project_id].name}</span>
+                          <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs max-w-[150px]">
+                            <Building className="h-3 w-3 flex-shrink-0" />
+                            <span className="font-medium truncate">{taskProjects[(task as any).project_id].name}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">No project</span>
+                          <div className="flex items-center space-x-1 bg-muted p-1.5 rounded text-xs text-muted-foreground">
+                            <Building className="h-3 w-3" />
+                            <span>No project</span>
+                          </div>
                         )}
                       </td>
                       <td className="p-4">
