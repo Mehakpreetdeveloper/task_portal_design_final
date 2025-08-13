@@ -11,7 +11,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Edit, Trash2, CheckCircle, Circle, Calendar, User, Users, Paperclip, X, Download, MessageCircle, LayoutGrid, List } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, Circle, Calendar, User, Users, Paperclip, X, Download, MessageCircle, LayoutGrid, List, Eye, Building } from 'lucide-react';
 import TaskComments from '@/components/TaskComments';
 
 type Task = {
@@ -25,6 +25,8 @@ type Task = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  project_id: string | null;
+  project?: Project;
 };
 
 type Project = {
@@ -67,6 +69,7 @@ const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
+  const [taskProjects, setTaskProjects] = useState<{[key: string]: Project}>({});
   const [taskAssignments, setTaskAssignments] = useState<{[key: string]: TaskAssignment[]}>({});
   const [taskAttachments, setTaskAttachments] = useState<{[key: string]: TaskAttachment[]}>({});
   const [loading, setLoading] = useState(true);
@@ -132,11 +135,12 @@ const Tasks = () => {
       if (error) throw error;
       setTasks((data || []) as Task[]);
       
-      // Fetch assignments and attachments for each task
+      // Fetch assignments, attachments, and projects for each task
       if (data && data.length > 0) {
         await Promise.all([
           fetchTaskAssignments(data.map(t => t.id)),
-          fetchTaskAttachments(data.map(t => t.id))
+          fetchTaskAttachments(data.map(t => t.id)),
+          fetchTaskProjects(data.filter(t => (t as any).project_id).map(t => (t as any).project_id))
         ]);
       }
     } catch (error: any) {
@@ -147,6 +151,29 @@ const Tasks = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTaskProjects = async (projectIds: string[]) => {
+    try {
+      const uniqueProjectIds = [...new Set(projectIds.filter(Boolean))];
+      if (uniqueProjectIds.length === 0) return;
+
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name')
+        .in('id', uniqueProjectIds);
+
+      if (error) throw error;
+
+      const projectsMap: {[key: string]: Project} = {};
+      (data || []).forEach(project => {
+        projectsMap[project.id] = project;
+      });
+      
+      setTaskProjects(projectsMap);
+    } catch (error: any) {
+      console.error('Error fetching task projects:', error.message);
     }
   };
 
@@ -1096,6 +1123,17 @@ const Tasks = () => {
                         )}
                       </div>
 
+                      {/* Project Information */}
+                      {(task as any).project_id && taskProjects[(task as any).project_id] && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground">Project:</div>
+                          <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs">
+                            <Building className="h-3 w-3" />
+                            <span className="font-medium">{taskProjects[(task as any).project_id].name}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Task Assignments */}
                       {taskAssignments[task.id] && taskAssignments[task.id].length > 0 && (
                         <div className="space-y-2">
@@ -1170,6 +1208,18 @@ const Tasks = () => {
                       setSelectedTaskForComments(task.id);
                       handleEdit(task);
                     }}
+                    title="View Task Details"
+                    className="h-8 w-8 p-0"
+                  >
+                    <Eye className="h-3 w-3 md:h-4 md:w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedTaskForComments(task.id);
+                      handleEdit(task);
+                    }}
                     title="Edit & Comments"
                     className="h-8 w-8 p-0"
                   >
@@ -1225,6 +1275,7 @@ const Tasks = () => {
                 <thead className="border-b bg-muted/50">
                   <tr>
                     <th className="text-left p-4 font-medium">Task</th>
+                    <th className="text-left p-4 font-medium">Project</th>
                     <th className="text-left p-4 font-medium">Status</th>
                     <th className="text-left p-4 font-medium">Priority</th>
                     <th className="text-left p-4 font-medium">Assigned To</th>
@@ -1260,6 +1311,16 @@ const Tasks = () => {
                             )}
                           </div>
                         </div>
+                      </td>
+                      <td className="p-4">
+                        {(task as any).project_id && taskProjects[(task as any).project_id] ? (
+                          <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs">
+                            <Building className="h-3 w-3" />
+                            <span className="font-medium">{taskProjects[(task as any).project_id].name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No project</span>
+                        )}
                       </td>
                       <td className="p-4">
                         {canUpdateStatus(task) ? (
@@ -1333,6 +1394,17 @@ const Tasks = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTaskForComments(task.id);
+                              handleEdit(task);
+                            }}
+                            title="View Task Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
