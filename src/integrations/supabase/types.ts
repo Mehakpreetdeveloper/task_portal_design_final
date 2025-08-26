@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -362,17 +362,132 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      secure_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          phone_number: string | null
+          phone_visible: boolean | null
+          updated_at: string | null
+          user_id: string | null
+          user_type: Database["public"]["Enums"]["user_type_enum"] | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          phone_number?: never
+          phone_visible?: never
+          updated_at?: string | null
+          user_id?: string | null
+          user_type?: Database["public"]["Enums"]["user_type_enum"] | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          phone_number?: never
+          phone_visible?: never
+          updated_at?: string | null
+          user_id?: string | null
+          user_type?: Database["public"]["Enums"]["user_type_enum"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_accessible_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_url: string
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          relationship: string
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+        }[]
+      }
+      get_current_user_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_url: string
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_project_teammates: {
+        Args: { _user_id: string }
+        Returns: {
+          teammate_id: string
+        }[]
+      }
+      get_safe_profile: {
+        Args: { _profile_user_id: string }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+        }[]
+      }
+      get_teammate_profiles: {
+        Args: { _user_id: string }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+        }[]
+      }
+      get_user_profile: {
+        Args: { _user_id: string }
+        Returns: {
+          avatar_url: string
+          can_view_phone: boolean
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+        }[]
+      }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -382,6 +497,25 @@ export type Database = {
       }
       is_project_owner_or_manager: {
         Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
+      list_secure_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_url: string
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          phone_visible: boolean
+          updated_at: string
+          user_id: string
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+        }[]
+      }
+      users_share_projects: {
+        Args: { _user1_id: string; _user2_id: string }
         Returns: boolean
       }
     }

@@ -47,7 +47,7 @@ return (
                   </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 md:w-80 p-0 mr-2 md:mr-0">
+              <PopoverContent className="w-72 md:w-80 p-0 !mr-10 md:mr-0">
                 <div className="p-3 md:p-4 border-b">
                   <h4 className="font-semibold text-sm md:text-base">Notifications</h4>
                 </div>

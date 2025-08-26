@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, UserCheck, UserX, Shield, Crown, Star } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Crown, Star, Eye, X, Mail, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 type Profile = {
@@ -15,6 +16,7 @@ type Profile = {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  phone_number: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -38,6 +40,7 @@ type UserStatus = {
 type TeamMember = Profile & {
   user_roles: UserRole[];
   user_status: UserStatus | null;
+  email?: string;
 };
 
 const Team = () => {
@@ -45,6 +48,8 @@ const Team = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     fetchTeamMembers();
@@ -71,10 +76,14 @@ const Team = () => {
 
       if (statusError) throw statusError;
 
+      // Fetch auth users for email addresses  
+      const { data: authUsersData } = await supabase.auth.admin.listUsers();
+      
       // Combine profiles with their roles and status
       const membersWithRoles: TeamMember[] = (profilesData || []).map(profile => {
         const userRoles = (rolesData || []).filter(role => role.user_id === profile.user_id);
         const userStatus = (statusData || []).find(status => status.user_id === profile.user_id);
+        const authUser = authUsersData?.users?.find((u: any) => u.id === profile.user_id);
         
         return {
           ...profile,
@@ -83,6 +92,7 @@ const Team = () => {
             ...userStatus,
             status: userStatus.status as 'available' | 'busy' | 'on_leave' | 'offline'
           } : null,
+          email: authUser?.email || undefined,
         };
       });
 
@@ -223,6 +233,16 @@ const Team = () => {
     return member.user_roles.reduce((highest, current) => {
       return rolePriority[current.role] > rolePriority[highest] ? current.role : highest;
     }, member.user_roles[0].role);
+  };
+
+  const handleShowDetails = (member: TeamMember) => {
+    setSelectedMember(member);
+    setIsDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedMember(null);
   };
 
   // Filter team members
@@ -386,6 +406,16 @@ const Team = () => {
                         Member since {new Date(member.created_at).toLocaleDateString()}
                       </div>
                     </div>
+                    
+                    <Button 
+                      onClick={() => handleShowDetails(member)}
+                      variant="outline" 
+                      size="sm"
+                      className="w-full mt-4"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Show Details
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -393,6 +423,135 @@ const Team = () => {
           })}
         </div>
       )}
+
+      {/* Member Details Drawer */}
+      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <SheetContent className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center justify-between">
+              Team Member Details
+              <SheetClose asChild>
+                <Button variant="ghost" size="sm" onClick={handleCloseDrawer}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </SheetClose>
+            </SheetTitle>
+          </SheetHeader>
+          
+          {selectedMember && (
+            <div className="mt-6 space-y-6">
+              {/* Profile Section */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                    {selectedMember.avatar_url ? (
+                      <img 
+                        src={selectedMember.avatar_url} 
+                        alt="Avatar" 
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <Users className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">
+                      {selectedMember.first_name} {selectedMember.last_name}
+                    </h3>
+                    <p className="text-muted-foreground">Team Member</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Role</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMember.user_roles.map((role) => (
+                    <Badge key={role.id} variant={getRoleColor(role.role)} className="flex items-center space-x-1">
+                      {getRoleIcon(role.role)}
+                      <span>{getRoleLabel(role.role)}</span>
+                    </Badge>
+                  ))}
+                  {selectedMember.user_roles.length === 0 && (
+                    <Badge variant="outline" className="flex items-center space-x-1">
+                      <Users className="h-3 w-3" />
+                      <span>User</span>
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Section */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Status</h4>
+                <div className="flex items-center space-x-3">
+                  {selectedMember.user_status ? (
+                    <>
+                      {getStatusIcon(selectedMember.user_status.status)}
+                      <span className="font-medium">{getStatusLabel(selectedMember.user_status.status)}</span>
+                      <div className={`w-3 h-3 rounded-full ${getStatusColor(selectedMember.user_status.status)}`}></div>
+                    </>
+                  ) : (
+                    <>
+                      <UserX className="h-4 w-4 text-gray-600" />
+                      <span className="text-muted-foreground">No status set</span>
+                    </>
+                  )}
+                </div>
+                {selectedMember.user_status?.status_message && (
+                  <p className="text-sm text-muted-foreground">
+                    "{selectedMember.user_status.status_message}"
+                  </p>
+                )}
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Contact Information</h4>
+                <div className="space-y-3">
+                  {selectedMember.email && (
+                    <div className="flex items-center space-x-3">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{selectedMember.email}</span>
+                    </div>
+                  )}
+                  {selectedMember.phone_number && (
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{selectedMember.phone_number}</span>
+                    </div>
+                  )}
+                  {!selectedMember.email && !selectedMember.phone_number && (
+                    <p className="text-sm text-muted-foreground">No contact information available</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Additional Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Member Since:</span>
+                    <span>{new Date(selectedMember.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last Updated:</span>
+                    <span>{new Date(selectedMember.updated_at).toLocaleDateString()}</span>
+                  </div>
+                  {selectedMember.user_status && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status Updated:</span>
+                      <span>{new Date(selectedMember.user_status.updated_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

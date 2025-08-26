@@ -484,7 +484,6 @@ const Tasks = () => {
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     
-    // Get current task assignments to populate the form
     const currentAssignments = taskAssignments[task.id] || [];
     const assignedUserIds = currentAssignments.map(assignment => assignment.user_id);
     
@@ -1209,7 +1208,7 @@ const Tasks = () => {
 
               {/* Action Buttons in Footer */}
               <CardFooter className="flex justify-between items-center p-4">
-                <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-1">
+                <div className="flex md:flex-row md:items-center md:space-y-0 md:space-x-1">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1280,7 +1279,7 @@ const Tasks = () => {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-auto">
                 <thead className="border-b bg-muted/50">
                   <tr>
                     <th className="text-left p-4 font-medium">Task</th>
