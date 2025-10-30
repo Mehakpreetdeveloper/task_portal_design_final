@@ -9,6 +9,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
+import ProjectDetails from "./pages/ProjectDetails";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import Users from "./pages/Users";
@@ -44,6 +45,13 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <Projects />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/projects/:id" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ProjectDetails />
                 </AppLayout>
               </ProtectedRoute>
             } />

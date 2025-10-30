@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardFooter,CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,24 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Edit, Trash2, CheckCircle, Circle, Calendar, User, Users, Paperclip, X, Download, MessageCircle, LayoutGrid, List, Eye, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, Circle, Calendar, User, Users, Paperclip, X, Download, MessageCircle, LayoutGrid, List, Eye, Building, ChevronDown, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import TaskComments from '@/components/TaskComments';
+
+type Subtask = {
+  id: string;
+  title: string;
+  description: string;
+  status: 'todo' | 'in_progress' | 'in_review' | 'done';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  due_date: string | null;
+  assigned_users: string[];
+  completed: boolean;
+};
 
 type Task = {
   id: string;
@@ -27,6 +41,7 @@ type Task = {
   updated_at: string;
   project_id: string | null;
   project?: Project;
+  subtasks?: Subtask[];
 };
 
 type Project = {
@@ -74,11 +89,20 @@ const Tasks = () => {
   const [taskAttachments, setTaskAttachments] = useState<{[key: string]: TaskAttachment[]}>({});
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [selectedTaskForComments, setSelectedTaskForComments] = useState<string | null>(null);
   const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  
+  // Subtask states
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState<{[key: string]: string}>({});
+  const [editingSubtask, setEditingSubtask] = useState<{taskId: string, subtaskId: string, title: string} | null>(null);
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState<string | null>(null);
+  const [parentTaskId, setParentTaskId] = useState<string | null>(null);
+  const [editingSubtaskDetails, setEditingSubtaskDetails] = useState<{taskId: string, subtask: Subtask} | null>(null);
   
   // Filter states
   const [filterProject, setFilterProject] = useState<string>('all');
@@ -133,7 +157,17 @@ const Tasks = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTasks((data || []) as Task[]);
+      
+      // Load subtasks from localStorage
+      const tasksWithSubtasks = (data || []).map(task => {
+        const storedSubtasks = localStorage.getItem(`subtasks_${task.id}`);
+        return {
+          ...task,
+          subtasks: storedSubtasks ? JSON.parse(storedSubtasks) : []
+        };
+      });
+      
+      setTasks(tasksWithSubtasks as Task[]);
       
       // Fetch assignments, attachments, and projects for each task
       if (data && data.length > 0) {
@@ -344,6 +378,110 @@ const Tasks = () => {
     e.preventDefault();
     if (!user) return;
 
+    // If editing a subtask, handle it differently
+    if (editingSubtaskDetails) {
+      try {
+        const task = tasks.find(t => t.id === editingSubtaskDetails.taskId);
+        if (!task) return;
+
+        const updatedSubtasks = task.subtasks?.map(st =>
+          st.id === editingSubtaskDetails.subtask.id
+            ? {
+                ...st,
+                title: formData.title,
+                description: formData.description,
+                status: formData.status,
+                priority: formData.priority,
+                due_date: formData.due_date || null,
+                assigned_users: formData.assigned_users,
+              }
+            : st
+        ) || [];
+
+        // Save to localStorage
+        localStorage.setItem(`subtasks_${editingSubtaskDetails.taskId}`, JSON.stringify(updatedSubtasks));
+
+        toast({
+          title: 'Subtask Updated',
+          description: 'Subtask has been successfully updated.',
+        });
+
+        fetchTasks();
+        setDrawerOpen(false);
+        setEditingSubtaskDetails(null);
+        setFormData({
+          title: '',
+          description: '',
+          status: 'todo',
+          priority: 'medium',
+          due_date: '',
+          project_ids: [],
+          assigned_users: [],
+          assignment_description: '',
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    // If creating a subtask, handle it differently
+    if (parentTaskId) {
+      const title = formData.title.trim();
+      if (!title) return;
+
+      try {
+        const task = tasks.find(t => t.id === parentTaskId);
+        if (!task) return;
+
+        const newSubtask: Subtask = {
+          id: crypto.randomUUID(),
+          title,
+          description: formData.description,
+          status: formData.status,
+          priority: formData.priority,
+          due_date: formData.due_date || null,
+          assigned_users: formData.assigned_users,
+          completed: false
+        };
+
+        const updatedSubtasks = [...(task.subtasks || []), newSubtask];
+        
+        // Save to localStorage
+        localStorage.setItem(`subtasks_${parentTaskId}`, JSON.stringify(updatedSubtasks));
+
+        toast({
+          title: 'Subtask Added',
+          description: 'Subtask has been successfully added.',
+        });
+
+        fetchTasks();
+        setDrawerOpen(false);
+        setParentTaskId(null);
+        setFormData({
+          title: '',
+          description: '',
+          status: 'todo',
+          priority: 'medium',
+          due_date: '',
+          project_ids: [],
+          assigned_users: [],
+          assignment_description: '',
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
     if (formData.assigned_users.length === 0) {
       toast({
         title: 'Error',
@@ -461,6 +599,7 @@ const Tasks = () => {
       fetchTasks();
       setDrawerOpen(false);
       setEditingTask(null);
+      setParentTaskId(null);
       setFormData({
         title: '',
         description: '',
@@ -483,6 +622,8 @@ const Tasks = () => {
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
+    setEditingSubtaskDetails(null);
+    setParentTaskId(null);
     
     const currentAssignments = taskAssignments[task.id] || [];
     const assignedUserIds = currentAssignments.map(assignment => assignment.user_id);
@@ -495,6 +636,25 @@ const Tasks = () => {
       due_date: task.due_date ? task.due_date.split('T')[0] : '',
       project_ids: [],
       assigned_users: assignedUserIds,
+      assignment_description: '',
+    });
+    setSelectedFiles(null);
+    setDrawerOpen(true);
+  };
+
+  const handleEditSubtask = (taskId: string, subtask: Subtask) => {
+    setEditingSubtaskDetails({ taskId, subtask });
+    setEditingTask(null);
+    setParentTaskId(null);
+    
+    setFormData({
+      title: subtask.title,
+      description: subtask.description || '',
+      status: subtask.status,
+      priority: subtask.priority,
+      due_date: subtask.due_date ? subtask.due_date.split('T')[0] : '',
+      project_ids: [],
+      assigned_users: subtask.assigned_users || [],
       assignment_description: '',
     });
     setSelectedFiles(null);
@@ -650,6 +810,154 @@ const Tasks = () => {
     return canEdit || task.created_by === user?.id || isCurrentUserAssigned(task.id);
   };
 
+  // Subtask management functions
+  const toggleTaskExpansion = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAddSubtaskClick = (taskId: string) => {
+    // Set the parent task ID and open the drawer
+    setParentTaskId(taskId);
+    setEditingTask(null);
+    setFormData({
+      title: '',
+      description: '',
+      status: 'todo',
+      priority: 'medium',
+      due_date: '',
+      project_ids: [],
+      assigned_users: [],
+      assignment_description: '',
+    });
+    setSelectedFiles(null);
+    setDrawerOpen(true);
+  };
+
+  const addSubtask = async (taskId: string) => {
+    const title = newSubtaskTitle[taskId]?.trim();
+    if (!title) return;
+
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const newSubtask: Subtask = {
+        id: crypto.randomUUID(),
+        title,
+        description: '',
+        status: 'todo',
+        priority: 'medium',
+        due_date: null,
+        assigned_users: [],
+        completed: false
+      };
+
+      const updatedSubtasks = [...(task.subtasks || []), newSubtask];
+      
+      // Save to localStorage
+      localStorage.setItem(`subtasks_${taskId}`, JSON.stringify(updatedSubtasks));
+
+      toast({
+        title: 'Subtask Added',
+        description: 'Subtask has been successfully added.',
+      });
+
+      setNewSubtaskTitle(prev => ({ ...prev, [taskId]: '' }));
+      fetchTasks();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const toggleSubtaskComplete = async (taskId: string, subtaskId: string) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const updatedSubtasks = task.subtasks?.map(st =>
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      ) || [];
+
+      // Save to localStorage
+      localStorage.setItem(`subtasks_${taskId}`, JSON.stringify(updatedSubtasks));
+
+      fetchTasks();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const updateSubtask = async (taskId: string, subtaskId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const updatedSubtasks = task.subtasks?.map(st =>
+        st.id === subtaskId ? { ...st, title: newTitle } : st
+      ) || [];
+
+      // Save to localStorage
+      localStorage.setItem(`subtasks_${taskId}`, JSON.stringify(updatedSubtasks));
+
+      toast({
+        title: 'Subtask Updated',
+        description: 'Subtask has been successfully updated.',
+      });
+
+      setEditingSubtask(null);
+      fetchTasks();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteSubtask = async (taskId: string, subtaskId: string) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const updatedSubtasks = task.subtasks?.filter(st => st.id !== subtaskId) || [];
+
+      // Save to localStorage
+      localStorage.setItem(`subtasks_${taskId}`, JSON.stringify(updatedSubtasks));
+
+      toast({
+        title: 'Subtask Deleted',
+        description: 'Subtask has been successfully deleted.',
+      });
+
+      fetchTasks();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Filter tasks
   const filteredTasks = tasks.filter(task => {
     if (filterStatus && filterStatus !== 'all' && task.status !== filterStatus) return false;
@@ -660,10 +968,28 @@ const Tasks = () => {
       if (!taskAssigned) return false;
     }
     if (filterProject && filterProject !== 'all') {
-      // This would require checking project_tasks table - simplified for now
-      return true;
+      return (task as any).project_id === filterProject;
     }
     return true;
+  });
+
+  // Group tasks by project
+  const groupedTasks = filteredTasks.reduce((acc, task) => {
+    const projectId = (task as any).project_id || 'unassigned';
+    if (!acc[projectId]) {
+      acc[projectId] = [];
+    }
+    acc[projectId].push(task);
+    return acc;
+  }, {} as {[key: string]: Task[]});
+
+  // Sort projects: assigned projects first, then unassigned
+  const sortedProjectIds = Object.keys(groupedTasks).sort((a, b) => {
+    if (a === 'unassigned') return 1;
+    if (b === 'unassigned') return -1;
+    const projectA = taskProjects[a]?.name || '';
+    const projectB = taskProjects[b]?.name || '';
+    return projectA.localeCompare(projectB);
   });
 
   if (loading) {
@@ -688,6 +1014,8 @@ const Tasks = () => {
         <Button 
           onClick={() => {
             setEditingTask(null);
+            setParentTaskId(null);
+            setEditingSubtaskDetails(null);
             setFormData({
               title: '',
               description: '',
@@ -720,40 +1048,59 @@ const Tasks = () => {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold">
-                    {editingTask ? 'Edit Task' : 'Create New Task'}
+                    {editingTask ? 'Edit Task' : editingSubtaskDetails ? 'Edit Subtask' : parentTaskId ? 'Add Subtask' : 'Create New Task'}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {editingTask ? 'Update the task details.' : 'Create a new task to track your work.'}
+                    {editingTask ? 'Update the task details.' : editingSubtaskDetails ? 'Update the subtask details.' : parentTaskId ? 'Add a subtask to the parent task.' : 'Create a new task to track your work.'}
                   </p>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setDrawerOpen(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      setModalOpen(true);
+                    }}
+                    className="h-8 w-8 p-0"
+                    title="Expand to modal"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      setParentTaskId(null);
+                      setEditingSubtaskDetails(null);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="animate-in fade-in duration-300 delay-150">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Task Title</Label>
+                    <Label htmlFor="title">{editingSubtaskDetails ? 'Subtask Title' : parentTaskId ? 'Subtask Title' : 'Task Title'}</Label>
                     <Input
                       id="title"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Enter task title"
+                      placeholder={editingSubtaskDetails || parentTaskId ? "Enter subtask title" : "Enter task title"}
                       required
                     />
                   </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Enter task description"
+                      placeholder={parentTaskId ? "Enter subtask description" : "Enter task description"}
                       rows={3}
                     />
                   </div>
@@ -807,7 +1154,7 @@ const Tasks = () => {
                     />
                   </div>
                   
-                  {!editingTask && (
+                  {!editingTask && !parentTaskId && (
                     <div className="space-y-2">
                       <Label>Assign to Projects (Optional)</Label>
                       <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
@@ -847,42 +1194,42 @@ const Tasks = () => {
                     </Label>
                     <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
                       {users.map((userProfile) => (
-                        <div key={userProfile.user_id} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`assign-user-${userProfile.user_id}`}
-                            checked={formData.assigned_users.includes(userProfile.user_id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData({
-                                  ...formData,
-                                  assigned_users: [...formData.assigned_users, userProfile.user_id]
-                                });
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  assigned_users: formData.assigned_users.filter(id => id !== userProfile.user_id)
-                                });
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <Label htmlFor={`assign-user-${userProfile.user_id}`} className="text-sm">
-                            <span className="font-medium">
-                              {userProfile.first_name} {userProfile.last_name}
-                            </span>
-                            {userProfile.primary_role && (
-                              <span className="ml-2 text-xs text-muted-foreground capitalize">
-                                ({userProfile.primary_role.replace('_', ' ')})
+                          <div key={userProfile.user_id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`assign-user-${userProfile.user_id}`}
+                              checked={formData.assigned_users.includes(userProfile.user_id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({
+                                    ...formData,
+                                    assigned_users: [...formData.assigned_users, userProfile.user_id]
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    assigned_users: formData.assigned_users.filter(id => id !== userProfile.user_id)
+                                  });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <Label htmlFor={`assign-user-${userProfile.user_id}`} className="text-sm">
+                              <span className="font-medium">
+                                {userProfile.first_name} {userProfile.last_name}
                               </span>
-                            )}
-                          </Label>
-                        </div>
+                              {userProfile.primary_role && (
+                                <span className="ml-2 text-xs text-muted-foreground capitalize">
+                                  ({userProfile.primary_role.replace('_', ' ')})
+                                </span>
+                              )}
+                            </Label>
+                          </div>
                       ))}
                     </div>
                   </div>
 
-                  {!editingTask && (
+                  {!editingTask && !parentTaskId && (
                     <div className="space-y-2">
                       <Label htmlFor="assignment_description">Assignment Note (Optional)</Label>
                       <Textarea
@@ -897,58 +1244,62 @@ const Tasks = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="attachments">Attachments</Label>
-                    
-                    {editingTask && taskAttachments[editingTask.id] && taskAttachments[editingTask.id].length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Current Attachments</Label>
-                        <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
-                          {taskAttachments[editingTask.id].map((attachment) => (
-                            <div key={attachment.id} className="flex items-center justify-between text-sm">
-                              <span className="truncate">{attachment.file_name}</span>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => downloadAttachment(attachment)}
-                                >
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deleteAttachment(attachment)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
+                      
+                      {editingTask && taskAttachments[editingTask.id] && taskAttachments[editingTask.id].length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Current Attachments</Label>
+                          <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-2">
+                            {taskAttachments[editingTask.id].map((attachment) => (
+                              <div key={attachment.id} className="flex items-center justify-between text-sm">
+                                <span className="truncate">{attachment.file_name}</span>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => downloadAttachment(attachment)}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteAttachment(attachment)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <Input
-                      id="attachments"
-                      type="file"
-                      multiple
-                      onChange={(e) => setSelectedFiles(e.target.files)}
-                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
-                    />
-                    {selectedFiles && selectedFiles.length > 0 && (
-                      <div className="text-sm text-muted-foreground">
+                      <Input
+                        id="attachments"
+                        type="file"
+                        multiple
+                        onChange={(e) => setSelectedFiles(e.target.files)}
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                      />
+                      {selectedFiles && selectedFiles.length > 0 && (
+                        <div className="text-sm text-muted-foreground">
                         {selectedFiles.length} new file(s) selected
                       </div>
                     )}
                   </div>
 
                   <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setDrawerOpen(false)}>
+                    <Button type="button" variant="outline" onClick={() => {
+                      setDrawerOpen(false);
+                      setParentTaskId(null);
+                      setEditingSubtaskDetails(null);
+                    }}>
                       Cancel
                     </Button>
                     <Button type="submit" disabled={uploadingFiles}>
-                      {uploadingFiles ? 'Uploading...' : editingTask ? 'Update' : 'Create'} Task
+                      {uploadingFiles ? 'Uploading...' : editingSubtaskDetails ? 'Update Subtask' : parentTaskId ? 'Add Subtask' : editingTask ? 'Update Task' : 'Create Task'}
                     </Button>
                   </div>
                 </form>
@@ -956,8 +1307,8 @@ const Tasks = () => {
                 {/* Separator line */}
                     <hr className="my-6 border-t border-gray-300" />
 
-                {/* Comments Section - Only show when editing existing task */}
-                {editingTask && (
+                {/* Comments Section - Only show when editing existing task (not subtask) */}
+                {editingTask && !editingSubtaskDetails && (
                   <div className="mt-8 pt-6 border-t">
                     <TaskComments taskId={editingTask.id} />
                   </div>
@@ -968,13 +1319,407 @@ const Tasks = () => {
         </>
       )}
 
+      {/* Modal View - Professional Two-Column Layout */}
+      <Dialog open={modalOpen} onOpenChange={(open) => {
+        setModalOpen(open);
+        if (!open) {
+          setTimeout(() => setDrawerOpen(true), 100);
+        }
+      }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden bg-background">
+          {/* Header */}
+          <DialogHeader className="px-6 py-4 border-b">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <DialogTitle className="text-2xl font-semibold">
+                    {formData.title || (editingTask ? 'Edit Task' : editingSubtaskDetails ? 'Edit Subtask' : parentTaskId ? 'Add Subtask' : 'Create New Task')}
+                  </DialogTitle>
+                  <Badge 
+                    variant={
+                      formData.status === 'done' ? 'default' :
+                      formData.status === 'in_progress' ? 'secondary' :
+                      formData.status === 'in_review' ? 'outline' : 'outline'
+                    }
+                  >
+                    {formData.status === 'todo' ? 'To Do' :
+                     formData.status === 'in_progress' ? 'In Progress' :
+                     formData.status === 'in_review' ? 'In Review' : 'Done'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setModalOpen(false);
+                    setTimeout(() => setDrawerOpen(true), 100);
+                  }}
+                  className="h-8 w-8 p-0"
+                  title="Minimize to panel"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setModalOpen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          {/* Two-Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 h-[calc(90vh-5rem)] overflow-hidden">
+            {/* Left Section - Task Details */}
+            <div className="lg:col-span-2 overflow-y-auto px-6 py-4 border-r">
+              <form onSubmit={(e) => {
+                handleSubmit(e);
+                setModalOpen(false);
+              }} id="task-form" className="space-y-6">
+                {/* Key Info Grid */}
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground font-medium">Assignee</Label>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {formData.assigned_users.length > 0 
+                          ? `${formData.assigned_users.length} user${formData.assigned_users.length > 1 ? 's' : ''}`
+                          : 'Not assigned'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground font-medium">Due Date</Label>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {formData.due_date || 'No due date'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 grid">
+                    <Label className="text-xs text-muted-foreground font-medium">Priority</Label>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={
+                            formData.priority === 'urgent' ? 'destructive' :
+                            formData.priority === 'high' ? 'default' :
+                            formData.priority === 'medium' ? 'secondary' : 'outline'
+                          }
+                          className="capitalize h-4 w-16 text-muted-foreground text-white"
+                        >
+                          {formData.priority}
+                        </Badge>
+                      </div>
+                  </div>
+                  {/* <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground font-medium">Priority</Label>
+                    <Badge 
+                      variant={
+                        formData.priority === 'urgent' ? 'destructive' :
+                        formData.priority === 'high' ? 'default' :
+                        formData.priority === 'medium' ? 'secondary' : 'outline'
+                      }
+                      className="capitalize"
+                    >
+                      {formData.priority}
+                    </Badge>
+                  </div> */}
+
+                  {editingTask && editingTask.project_id && taskProjects[editingTask.project_id] && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground font-medium">Project</Label>
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{taskProjects[editingTask.project_id].name}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="modal-description" className="text-sm font-medium">Description</Label>
+                  <Textarea
+                    id="modal-description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Add a description..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                {/* Tabs for Details, Subtasks, Action Items */}
+                <Tabs defaultValue="details" className="w-full">
+                  <TabsList className="w-full justify-start">
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="subtasks">Subtasks</TabsTrigger>
+                    <TabsTrigger value="attachments">Attachments</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="details" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="modal-title" className="text-sm font-medium">Task Title</Label>
+                      <Input
+                        id="modal-title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder={editingSubtaskDetails || parentTaskId ? "Enter subtask title" : "Enter task title"}
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="modal-status" className="text-sm font-medium">Status</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value: 'todo' | 'in_progress' | 'in_review' | 'done') =>
+                            setFormData({ ...formData, status: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="todo">To Do</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="in_review">In Review</SelectItem>
+                            <SelectItem value="done">Done</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="modal-priority" className="text-sm font-medium">Priority</Label>
+                        <Select
+                          value={formData.priority}
+                          onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') =>
+                            setFormData({ ...formData, priority: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="urgent">Urgent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="modal-due_date" className="text-sm font-medium">Due Date</Label>
+                      <Input
+                        id="modal-due_date"
+                        type="date"
+                        value={formData.due_date}
+                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                      />
+                    </div>
+
+                    {!editingTask && !parentTaskId && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Assign to Projects (Optional)</Label>
+                        <div className="max-h-32 overflow-y-auto border rounded-md p-3 space-y-2 bg-background">
+                          {projects.map((project) => (
+                            <div key={project.id} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`modal-project-${project.id}`}
+                                checked={formData.project_ids.includes(project.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData({
+                                      ...formData,
+                                      project_ids: [...formData.project_ids, project.id]
+                                    });
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      project_ids: formData.project_ids.filter(id => id !== project.id)
+                                    });
+                                  }
+                                }}
+                                className="rounded"
+                              />
+                              <Label htmlFor={`modal-project-${project.id}`} className="text-sm cursor-pointer">
+                                {project.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        Assign to Users {editingTask ? '(Update Assignments)' : '(Required)'}
+                      </Label>
+                      <div className="max-h-32 overflow-y-auto border rounded-md p-3 space-y-2 bg-background">
+                        {users.map((userProfile) => (
+                          <div key={userProfile.user_id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`modal-assign-user-${userProfile.user_id}`}
+                              checked={formData.assigned_users.includes(userProfile.user_id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({
+                                    ...formData,
+                                    assigned_users: [...formData.assigned_users, userProfile.user_id]
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    assigned_users: formData.assigned_users.filter(id => id !== userProfile.user_id)
+                                  });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <Label htmlFor={`modal-assign-user-${userProfile.user_id}`} className="text-sm cursor-pointer">
+                              <span className="font-medium">
+                                {userProfile.first_name} {userProfile.last_name}
+                              </span>
+                              {userProfile.primary_role && (
+                                <span className="ml-2 text-xs text-muted-foreground capitalize">
+                                  ({userProfile.primary_role.replace('_', ' ')})
+                                </span>
+                              )}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {!editingTask && !parentTaskId && (
+                      <div className="space-y-2">
+                        <Label htmlFor="modal-assignment_description" className="text-sm font-medium">Assignment Note (Optional)</Label>
+                        <Textarea
+                          id="modal-assignment_description"
+                          value={formData.assignment_description}
+                          onChange={(e) => setFormData({ ...formData, assignment_description: e.target.value })}
+                          placeholder="Add a note about this assignment"
+                          rows={2}
+                        />
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="subtasks" className="space-y-4 mt-4">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">Subtasks management coming soon</p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="attachments" className="space-y-4 mt-4">
+                    {editingTask && taskAttachments[editingTask.id] && taskAttachments[editingTask.id].length > 0 && (
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Current Attachments</Label>
+                        <div className="space-y-2">
+                          {taskAttachments[editingTask.id].map((attachment) => (
+                            <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                              <div className="flex items-center gap-2">
+                                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm truncate">{attachment.file_name}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => downloadAttachment(attachment)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteAttachment(attachment)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="modal-attachments" className="text-sm font-medium">Add Files</Label>
+                      <Input
+                        id="modal-attachments"
+                        type="file"
+                        multiple
+                        onChange={(e) => setSelectedFiles(e.target.files)}
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                      />
+                      {selectedFiles && selectedFiles.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedFiles.length} new file(s) selected
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                {/* Form Actions */}
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={uploadingFiles}>
+                    {uploadingFiles ? 'Uploading...' : editingSubtaskDetails ? 'Update Subtask' : parentTaskId ? 'Add Subtask' : editingTask ? 'Update Task' : 'Create Task'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Right Section - Activity / Comments */}
+            <div className="lg:col-span-1 overflow-y-auto bg-muted/30">
+              <div className="p-4 border-b bg-background">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Activity
+                </h3>
+              </div>
+              <div className="p-4">
+                {editingTask && !editingSubtaskDetails ? (
+                  <TaskComments taskId={editingTask.id} />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Save the task to add comments</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base md:text-lg">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             <div className="space-y-2">
               <Label className="text-sm">Filter by Status</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -1022,29 +1767,6 @@ const Tasks = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm">View Mode</Label>
-              <div className="flex space-x-1 bg-muted rounded-lg p-1">
-                <Button
-                  variant={viewMode === 'card' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('card')}
-                  className="flex-1 text-xs md:text-sm h-8"
-                >
-                  <LayoutGrid className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                  <span className="hidden sm:inline">Card</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="flex-1 text-xs md:text-sm h-8"
-                >
-                  <List className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                  <span className="hidden sm:inline">List</span>
-                </Button>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -1057,419 +1779,371 @@ const Tasks = () => {
               <p className="text-sm text-muted-foreground">
                 Get started by creating your first task.
               </p>
-              <Button onClick={() => setDrawerOpen(true)} className="mt-4">
+              <Button onClick={() => {
+                setEditingTask(null);
+                setParentTaskId(null);
+                setEditingSubtaskDetails(null);
+                setDrawerOpen(true);
+              }} className="mt-4">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Task
               </Button>
             </div>
           </CardContent>
         </Card>
-      ) : viewMode === 'card' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-          {filteredTasks.map((task) => (
-            <Card key={task.id}>
-              <CardContent className="p-4 md:pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-2 md:space-x-3 flex-1">
-                    
-                    {/* Task Title and Priority */}
-                    <div className="flex-1 space-y-2 md:space-y-3 min-w-0">
-                      <div className="flex items-center space-x-2 justify-between">
-                        <h3 className={`text-sm md:text-base font-medium truncate ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
-                          {task.title}
-                        </h3>
-                        <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
-                          {task.priority}
-                        </Badge>
-                      </div>
-
-                      {/* Task Status Selector */}
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        {canUpdateStatus(task) ? (
-                          <Select
-                            value={task.status}
-                            onValueChange={async (newStatus: 'todo' | 'in_progress' | 'in_review' | 'done') => {
-                              try {
-                                const { error } = await supabase
-                                  .from('tasks')
-                                  .update({ status: newStatus })
-                                  .eq('id', task.id);
-                                if (error) throw error;
-                                toast({
-                                  title: 'Status Updated',
-                                  description: `Task status changed to ${newStatus.replace('_', ' ')}.`,
-                                });
-                                fetchTasks();
-                              } catch (error: any) {
-                                toast({
-                                  title: 'Error',
-                                  description: error.message,
-                                  variant: 'destructive',
-                                });
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-24 md:w-32 h-7 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="todo">To Do</SelectItem>
-                              <SelectItem value="in_progress">In Progress</SelectItem>
-                              <SelectItem value="in_review">In Review</SelectItem>
-                              <SelectItem value="done">Done</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
-                            {task.status.replace('_', ' ')}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Project Information */}
-                      <div className="space-y-1">
-                        <div className="text-xs font-medium text-muted-foreground">Project:</div>
-                        {(task as any).project_id && taskProjects[(task as any).project_id] ? (
-                          <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs">
-                            <Building className="h-3 w-3" />
-                            <span className="font-medium">{taskProjects[(task as any).project_id].name}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1 bg-muted p-1.5 rounded text-xs text-muted-foreground">
-                            <Building className="h-3 w-3" />
-                            <span>No project assigned</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Task Assignments */}
-                      {taskAssignments[task.id] && taskAssignments[task.id].length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">Assigned to:</div>
-                          <div className="flex flex-wrap gap-2">
-                            {taskAssignments[task.id].map((assignment) => (
-                              <div key={assignment.id} className="flex items-center space-x-1 bg-muted p-1 rounded text-xs">
-                                <User className="h-3 w-3" />
-                                <span>{assignment.profiles.first_name} {assignment.profiles.last_name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Task Attachments */}
-                      {taskAttachments[task.id] && taskAttachments[task.id].length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">Attachments:</div>
-                          <div className="flex flex-wrap gap-2">
-                            {taskAttachments[task.id].map((attachment) => (
-                              <div key={attachment.id} className="flex items-center space-x-2 bg-muted p-2 rounded text-xs">
-                                <Paperclip className="h-3 w-3" />
-                                <span className="truncate max-w-24">{attachment.file_name}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => downloadAttachment(attachment)}
-                                  className="h-4 w-4 p-0"
-                                >
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deleteAttachment(attachment)}
-                                  className="h-4 w-4 p-0"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Due Date and Created At */}
-                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                        {task.due_date && (
-                          <div className="flex items-center">
-                            <Calendar className="mr-1 h-3 w-3" />
-                            {new Date(task.due_date).toLocaleDateString()}
-                          </div>
-                        )}
-                        <div className="flex items-center">
-                          <User className="mr-1 h-3 w-3" />
-                          Created {new Date(task.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-
-              {/* Action Buttons in Footer */}
-              <CardFooter className="flex justify-between items-center p-4">
-                <div className="flex md:flex-row md:items-center md:space-y-0 md:space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTaskForComments(task.id);
-                      handleEdit(task);
-                    }}
-                    title="View Task Details"
-                    className="h-8 w-8 p-0"
-                  >
-                    <Eye className="h-3 w-3 md:h-4 md:w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTaskForComments(task.id);
-                      handleEdit(task);
-                    }}
-                    title="Edit & Comments"
-                    className="h-8 w-8 p-0"
-                  >
-                    <MessageCircle className="h-3 w-3 md:h-4 md:w-4" />
-                  </Button>
-                  {(canEdit || isCurrentUserAssigned(task.id)) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(task)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Edit className="h-3 w-3 md:h-4 md:w-4" />
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Task</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this task? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(task.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
       ) : (
-        // List View
+        // Project-grouped view with accordions
         <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full table-auto">
-                <thead className="border-b bg-muted/50">
-                  <tr>
-                    <th className="text-left p-4 font-medium">Task</th>
-                    <th className="text-left p-4 font-medium">Project</th>
-                    <th className="text-left p-4 font-medium">Status</th>
-                    <th className="text-left p-4 font-medium">Priority</th>
-                    <th className="text-left p-4 font-medium">Assigned To</th>
-                    <th className="text-left p-4 font-medium">Due Date</th>
-                    <th className="text-left p-4 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTasks.map((task) => (
-                    <tr key={task.id} className="border-b hover:bg-muted/50">
-                      <td className="p-4">
+          <CardContent className="p-4 md:p-6">
+            <Accordion type="multiple" className="w-full space-y-2">
+              {sortedProjectIds.map((projectId) => {
+                const projectTasks = groupedTasks[projectId];
+                const projectName = projectId === 'unassigned' 
+                  ? 'Unassigned Tasks' 
+                  : taskProjects[projectId]?.name || 'Unknown Project';
+                const taskCount = projectTasks.length;
+
+                return (
+                  <AccordionItem key={projectId} value={projectId} className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center justify-between w-full pr-4">
                         <div className="flex items-center space-x-3">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleComplete(task)}
-                            className="p-0 h-6 w-6"
-                          >
-                            {task.status === 'done' ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </Button>
-                          <div>
-                            <h4 className={`font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
-                              {task.title}
-                            </h4>
-                            {task.description && (
-                              <p className="text-sm text-muted-foreground truncate max-w-xs">
-                                {task.description}
-                              </p>
-                            )}
-                          </div>
+                          <Building className="h-5 w-5 text-primary" />
+                          <span className="text-base md:text-lg font-semibold">{projectName}</span>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        {(task as any).project_id && taskProjects[(task as any).project_id] ? (
-                          <div className="flex items-center space-x-1 bg-primary/10 text-primary p-1.5 rounded text-xs max-w-[150px]">
-                            <Building className="h-3 w-3 flex-shrink-0" />
-                            <span className="font-medium truncate">{taskProjects[(task as any).project_id].name}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1 bg-muted p-1.5 rounded text-xs text-muted-foreground">
-                            <Building className="h-3 w-3" />
-                            <span>No project</span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {canUpdateStatus(task) ? (
-                          <Select
-                            value={task.status}
-                            onValueChange={async (newStatus: 'todo' | 'in_progress' | 'in_review' | 'done') => {
-                              try {
-                                const { error } = await supabase
-                                  .from('tasks')
-                                  .update({ status: newStatus })
-                                  .eq('id', task.id);
-                                if (error) throw error;
-                                toast({
-                                  title: 'Status Updated',
-                                  description: `Task status changed to ${newStatus.replace('_', ' ')}.`,
-                                });
-                                fetchTasks();
-                              } catch (error: any) {
-                                toast({
-                                  title: 'Error',
-                                  description: error.message,
-                                  variant: 'destructive',
-                                });
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-24 md:w-32 h-7 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="todo">To Do</SelectItem>
-                              <SelectItem value="in_progress">In Progress</SelectItem>
-                              <SelectItem value="in_review">In Review</SelectItem>
-                              <SelectItem value="done">Done</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
-                            {task.status.replace('_', ' ')}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <Badge variant={getPriorityBadgeColor(task.priority)}>
-                          {task.priority}
+                        <Badge variant="secondary" className="ml-auto mr-2">
+                          {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
                         </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-wrap gap-1">
-                          {taskAssignments[task.id] && taskAssignments[task.id].length > 0 ? (
-                            taskAssignments[task.id].map((assignment) => (
-                              <div key={assignment.id} className="flex items-center space-x-1 bg-muted p-1 rounded text-xs">
-                                <User className="h-3 w-3" />
-                                <span>{assignment.profiles.first_name} {assignment.profiles.last_name}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2 pb-4">
+                        {projectTasks.map((task) => (
+                          <div key={task.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                            <div className="flex items-start justify-between gap-4">
+                              {/* Task Info */}
+                              <div className="flex-1 space-y-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleToggleComplete(task)}
+                                      className="p-0 h-6 w-6"
+                                    >
+                                      {task.status === 'done' ? (
+                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                      ) : (
+                                        <Circle className="h-5 w-5 text-muted-foreground" />
+                                      )}
+                                    </Button>
+                                    <h4 className={`text-sm md:text-base font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                                      {task.title}
+                                    </h4>
+                                    {(canEdit || isCurrentUserAssigned(task.id)) && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleAddSubtaskClick(task.id);
+                                        }}
+                                        className="p-0 h-5 w-5 hover:bg-primary/10"
+                                        title="Add subtask"
+                                      >
+                                        <Plus className="h-4 w-4 text-primary" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <Badge variant={getPriorityBadgeColor(task.priority)} className="text-xs">
+                                    {task.priority}
+                                  </Badge>
+                                </div>
+
+                                {task.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-2 ml-9">
+                                    {task.description}
+                                  </p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-3 ml-9">
+                                  {/* Status */}
+                                  {canUpdateStatus(task) ? (
+                                    <Select
+                                      value={task.status}
+                                      onValueChange={async (newStatus: 'todo' | 'in_progress' | 'in_review' | 'done') => {
+                                        try {
+                                          const { error } = await supabase
+                                            .from('tasks')
+                                            .update({ status: newStatus })
+                                            .eq('id', task.id);
+                                          if (error) throw error;
+                                          toast({
+                                            title: 'Status Updated',
+                                            description: `Task status changed to ${newStatus.replace('_', ' ')}.`,
+                                          });
+                                          fetchTasks();
+                                        } catch (error: any) {
+                                          toast({
+                                            title: 'Error',
+                                            description: error.message,
+                                            variant: 'destructive',
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger className="w-32 h-7 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="todo">To Do</SelectItem>
+                                        <SelectItem value="in_progress">In Progress</SelectItem>
+                                        <SelectItem value="in_review">In Review</SelectItem>
+                                        <SelectItem value="done">Done</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Badge variant={getStatusBadgeColor(task.status)} className="text-xs">
+                                      {task.status.replace('_', ' ')}
+                                    </Badge>
+                                  )}
+
+                                  {/* Assigned Users */}
+                                  {taskAssignments[task.id] && taskAssignments[task.id].length > 0 && (
+                                    <div className="flex items-center gap-2">
+                                      <User className="h-3 w-3 text-muted-foreground" />
+                                      <div className="flex flex-wrap gap-1">
+                                        {taskAssignments[task.id].map((assignment) => (
+                                          <Badge key={assignment.id} variant="outline" className="text-xs">
+                                            {assignment.profiles.first_name} {assignment.profiles.last_name}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Due Date */}
+                                  {task.due_date && (
+                                    <div className="flex items-center text-xs text-muted-foreground">
+                                      <Calendar className="mr-1 h-3 w-3" />
+                                      {new Date(task.due_date).toLocaleDateString()}
+                                    </div>
+                                  )}
+
+                                   {/* Attachments */}
+                                  {taskAttachments[task.id] && taskAttachments[task.id].length > 0 && (
+                                    <div className="flex items-center text-xs text-muted-foreground">
+                                      <Paperclip className="mr-1 h-3 w-3" />
+                                      {taskAttachments[task.id].length} file(s)
+                                    </div>
+                                  )}
+
+                                  {/* Subtasks indicator */}
+                                  {task.subtasks && task.subtasks.length > 0 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => toggleTaskExpansion(task.id)}
+                                      className="h-6 px-2 text-xs"
+                                    >
+                                      {expandedTasks.has(task.id) ? (
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                      ) : (
+                                        <ChevronRight className="h-3 w-3 mr-1" />
+                                      )}
+                                      {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length} subtasks
+                                    </Button>
+                                  )}
+                                </div>
+
+                                {/* Subtasks section */}
+                                {expandedTasks.has(task.id) && (
+                                  <div className="ml-9 mt-3 space-y-2">
+                                    {/* Existing subtasks */}
+                                    {task.subtasks?.map((subtask) => (
+                                      <div key={subtask.id} className="flex items-center gap-2 pl-4 border-l-2 border-muted">
+                                        {editingSubtask?.subtaskId === subtask.id && editingSubtask?.taskId === task.id ? (
+                                          <div className="flex-1 flex items-center gap-2">
+                                            <Input
+                                              value={editingSubtask.title}
+                                              onChange={(e) => setEditingSubtask({ ...editingSubtask, title: e.target.value })}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  updateSubtask(task.id, subtask.id, editingSubtask.title);
+                                                } else if (e.key === 'Escape') {
+                                                  setEditingSubtask(null);
+                                                }
+                                              }}
+                                              className="h-7 text-sm"
+                                              autoFocus
+                                            />
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => updateSubtask(task.id, subtask.id, editingSubtask.title)}
+                                              className="h-7 px-2"
+                                            >
+                                              Save
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => setEditingSubtask(null)}
+                                              className="h-7 px-2"
+                                            >
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => toggleSubtaskComplete(task.id, subtask.id)}
+                                              className="p-0 h-5 w-5"
+                                            >
+                                              {subtask.completed ? (
+                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                              ) : (
+                                                <Circle className="h-4 w-4 text-muted-foreground" />
+                                              )}
+                                            </Button>
+                                            <span 
+                                              className={`flex-1 text-sm ${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
+                                            >
+                                              {subtask.title}
+                                            </span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleEditSubtask(task.id, subtask)}
+                                              className="h-6 w-6 p-0"
+                                              title="View & Edit Subtask"
+                                            >
+                                              <Eye className="h-3 w-3" />
+                                            </Button>
+                                            {(canEdit || isCurrentUserAssigned(task.id)) && (
+                                              <>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setEditingSubtask({ taskId: task.id, subtaskId: subtask.id, title: subtask.title })}
+                                                  className="h-6 w-6 p-0"
+                                                >
+                                                  <Edit className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => deleteSubtask(task.id, subtask.id)}
+                                                  className="h-6 w-6 p-0 text-destructive"
+                                                >
+                                                  <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                              </>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    ))}
+
+                                    {/* Add new subtask */}
+                                    {(canEdit || isCurrentUserAssigned(task.id)) && (
+                                      <div className="flex items-center gap-2 pl-4 border-l-2 border-muted">
+                                        <Input
+                                          ref={(el) => {
+                                            if (el && addingSubtaskFor === task.id) {
+                                              el.focus();
+                                            }
+                                          }}
+                                          placeholder="Add a subtask..."
+                                          value={newSubtaskTitle[task.id] || ''}
+                                          onChange={(e) => setNewSubtaskTitle(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              addSubtask(task.id);
+                                            }
+                                          }}
+                                          className="h-7 text-sm"
+                                        />
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => addSubtask(task.id)}
+                                          disabled={!newSubtaskTitle[task.id]?.trim()}
+                                          className="h-7 px-2"
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Unassigned</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {task.due_date ? (
-                          <div className="flex items-center text-sm">
-                            <Calendar className="mr-1 h-3 w-3" />
-                            {new Date(task.due_date).toLocaleDateString()}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">No due date</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedTaskForComments(task.id);
-                              handleEdit(task);
-                            }}
-                            title="View Task Details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedTaskForComments(task.id);
-                              handleEdit(task);
-                            }}
-                            title="Edit & Comments"
-                          >
-                            <MessageCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(task)}
-                            title="Edit Task"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Delete Task">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Task</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this task? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(task.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(task)}
+                                  title="View & Edit"
+                                  className="h-8 w-8 p-0"
                                 >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+
+                                {(canEdit || isCurrentUserAssigned(task.id)) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(task)}
+                                    className="h-8 w-8 p-0"
+                                    title="Edit"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                )}
+
+                                {canDelete && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Delete">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete this task? This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDelete(task.id)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </CardContent>
         </Card>
       )}
-
     </div>
   );
 };

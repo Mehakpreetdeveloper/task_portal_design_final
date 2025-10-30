@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -32,8 +32,7 @@ return (
         <header className="flex items-center justify-between border-b bg-blue-color p-2 md:p-[0.6rem] sticky top-0 z-50">
           <div className="flex items-center">
             <SidebarTrigger className="mr-2" />
-            <img src="sm-logo.png" alt="Check Square" className="h-5 w-5 md:h-6 md:w-6" />
-            <span className="font-bold text-sm md:text-lg text-primary">SmartzMinds Tasks</span>
+            <span className="font-bold text-sm md:text-lg text-primary">SmartzMinds Task Portal</span>
           </div>
           
           <div className="flex items-center gap-2 md:gap-3">
@@ -41,8 +40,8 @@ return (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-white-color hover:bg-white-color/10 h-8 w-8 md:h-10 md:w-10">
-                  <Bell className="h-4 w-4 md:h-5 md:w-5" />
-                  <span className="absolute -top-[0.25px] left-4 md:left-5 -right-1 h-3 w-3 md:h-4 md:w-4 bg-primary-color text-white-color text-[10px] md:text-xs rounded-full flex items-center justify-center">
+                  <Bell className="h-4 w-4 md:h-5 md:w-5 mt-1.5" />
+                  <span className="absolute -top-[0.25px] left-4 md:left-5 -right-1 h-3 w-3 md:h-4 md:w-4 bg-primary-color text-white-color text-[10px] md:text-xs rounded-full flex items-center justify-center mt-1.5">
                     3
                   </span>
                 </Button>

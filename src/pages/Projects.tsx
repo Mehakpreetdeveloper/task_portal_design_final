@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ type ProjectMember = {
 };
 
 const Projects = () => {
+  const navigate = useNavigate();
   const { user, isAdmin, isProjectManager } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
@@ -655,7 +657,11 @@ const Projects = () => {
             const progressPercentage = taskCounts.total > 0 ? Math.round((taskCounts.completed / taskCounts.total) * 100) : 0;
             
             return (
-              <Card key={project.id} className="hover:shadow-lg transition-shadow duration-200 cursor-pointer" >
+              <Card 
+                key={project.id} 
+                className="hover:shadow-lg transition-shadow duration-200 cursor-pointer" 
+                onClick={() => navigate(`/projects/${project.id}`)}
+              >
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="space-y-2 min-w-0 flex-1">
@@ -729,7 +735,6 @@ const Projects = () => {
                       <span className="text-sm font-medium">{taskCounts.total}</span>
                     </div>
                     
-                    {taskCounts.total > 0 && (
                       <>
                         {/* Progress Bar */}
                         <div className="w-full bg-muted rounded-full h-2">
@@ -755,7 +760,6 @@ const Projects = () => {
                           </div>
                         </div>
                       </>
-                    )}
                   </div>
 
                   {/* Project Dates */}

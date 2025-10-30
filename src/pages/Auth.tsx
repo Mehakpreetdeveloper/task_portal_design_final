@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -144,11 +144,11 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <Card className="shadow-xl border-0 bg-card">
           <CardHeader className="text-center space-y-2 pb-6">
-            <div className="mx-auto w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto rounded-full flex items-center justify-center mb-4">
               {/* <span className="text-2xl font-bold text-primary-foreground">T</span> */}
-              <img src="sm-logo.png" alt="Check Square" className="h-5 w-5 md:h-10 md:w-10" />
+              <img src="smfull.svg" alt="Check Square" />
             </div>
-            <CardTitle className="text-3xl font-bold text-primary">SmartzMinds Tasks</CardTitle>
+            <CardTitle className="text-3xl font-bold text-primary">Task Management Portal</CardTitle>
           </CardHeader>
           
           <CardContent className="space-y-6">

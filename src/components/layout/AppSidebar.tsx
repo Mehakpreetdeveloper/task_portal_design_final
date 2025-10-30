@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -34,10 +34,11 @@ const AppSidebar = () => {
   const currentPath = location.pathname;
   const { signOut, profile, isAdmin, isProjectManager } = useAuth();
 
-  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
-  
-  const getNavCls = ({ isActive: active }: { isActive: boolean }) =>
-    active ? 'bg-orange text-white-color font-medium' : 'hover:bg-grey-color text-black';
+const isActive = (path: string) =>
+  currentPath === path || currentPath.startsWith(path + '/');
+
+const getNavCls = ({ isActive: active }: { isActive: boolean }) =>
+  active ? 'bg-orange text-white-color font-medium' : 'hover:bg-grey-color text-black';
 
   const mainItems = [
     { title: 'Dashboard', url: '/dashboard', icon: Home },
@@ -81,12 +82,16 @@ const AppSidebar = () => {
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
+                  <NavLink to={item.url}>
+                    {({ isActive }) => (
+                      <SidebarMenuButton asChild isActive={isActive}>
+                        <div className="flex items-center gap-2">
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span className='text-white'>{item.title}</span>}
+                        </div>
+                      </SidebarMenuButton>
+                    )}
+                  </NavLink>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

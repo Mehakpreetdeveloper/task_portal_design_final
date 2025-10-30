@@ -106,4 +106,21 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide scrollbars globally while maintaining scroll functionality */
+  * {
+    /* Firefox */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Ensure scroll behavior is smooth */
+  html {
+    scroll-behavior: smooth;
+  }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, UserCheck, UserX, Shield, Crown, Star, Eye, X, Mail, Phone } from 'lucide-react';
+import { User , Users, UserCheck, UserX, Shield, Crown, Star, Eye, X, Mail, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 type Profile = {
@@ -276,64 +276,7 @@ const Team = () => {
         </div>
       </div>
 
-      {/* Status Update Section for Current User */}
-      {/* {user && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Update Your Status</CardTitle>
-            <CardDescription>
-              Let your team know your current availability.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
-                <Label>Set Your Status</Label>
-                <Select
-                  onValueChange={(value: 'available' | 'busy' | 'on_leave' | 'offline') => 
-                    updateUserStatus(value)
-                  }
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Select your status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">✅ Available</SelectItem>
-                    <SelectItem value="busy">🟡 Busy</SelectItem>
-                    <SelectItem value="on_leave">🔴 On Leave</SelectItem>
-                    <SelectItem value="offline">⚫ Offline</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )} */}
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Filter by Role</Label>
-            <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All roles</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="project_manager">Project Manager</SelectItem>
-                <SelectItem value="team_lead">Team Lead</SelectItem>
-                <SelectItem value="user">User</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
+      
       {filteredMembers.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -426,7 +369,7 @@ const Team = () => {
 
       {/* Member Details Drawer */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
+        <SheetContent className="w-[400px] sm:w-[540px] !mt-[60px]">
           <SheetHeader>
             <SheetTitle className="flex items-center justify-between">
               Team Member Details
@@ -451,7 +394,7 @@ const Team = () => {
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
-                      <Users className="h-8 w-8 text-muted-foreground" />
+                      <User className="h-8 w-8 text-muted-foreground" />
                     )}
                   </div>
                   <div>
@@ -529,7 +472,7 @@ const Team = () => {
               </div>
 
               {/* Additional Details */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">Additional Details</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -547,7 +490,7 @@ const Team = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
         </SheetContent>
