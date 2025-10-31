@@ -95,6 +95,7 @@ const Tasks = () => {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [selectedTaskForComments, setSelectedTaskForComments] = useState<string | null>(null);
   const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [panelActiveTab, setPanelActiveTab] = useState<'view' | 'edit' | 'comments'>('view');
   
   // Subtask states
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -624,6 +625,7 @@ const Tasks = () => {
     setEditingTask(task);
     setEditingSubtaskDetails(null);
     setParentTaskId(null);
+    setPanelActiveTab('view'); // Set to view tab by default when viewing a task
     
     const currentAssignments = taskAssignments[task.id] || [];
     const assignedUserIds = currentAssignments.map(assignment => assignment.user_id);
@@ -646,6 +648,7 @@ const Tasks = () => {
     setEditingSubtaskDetails({ taskId, subtask });
     setEditingTask(null);
     setParentTaskId(null);
+    setPanelActiveTab('edit'); // Set to edit tab for subtasks
     
     setFormData({
       title: subtask.title,
@@ -827,6 +830,7 @@ const Tasks = () => {
     // Set the parent task ID and open the drawer
     setParentTaskId(taskId);
     setEditingTask(null);
+    setPanelActiveTab('edit'); // Set to edit tab when adding subtask
     setFormData({
       title: '',
       description: '',
@@ -1027,6 +1031,7 @@ const Tasks = () => {
               assignment_description: '',
             });
             setSelectedFiles(null);
+            setPanelActiveTab('edit');
             setDrawerOpen(true);
           }}
           className="w-full md:w-auto"
@@ -1043,46 +1048,150 @@ const Tasks = () => {
             className="fixed inset-0 bg-black/40 transition-opacity duration-300"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className={`fixed top-0 right-0 h-full !pb-[50px] !mt-[60px] w-[550px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    {editingTask ? 'Edit Task' : editingSubtaskDetails ? 'Edit Subtask' : parentTaskId ? 'Add Subtask' : 'Create New Task'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {editingTask ? 'Update the task details.' : editingSubtaskDetails ? 'Update the subtask details.' : parentTaskId ? 'Add a subtask to the parent task.' : 'Create a new task to track your work.'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => {
-                      setDrawerOpen(false);
-                      setModalOpen(true);
-                    }}
-                    className="h-8 w-8 p-0"
-                    title="Expand to modal"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => {
-                      setDrawerOpen(false);
-                      setParentTaskId(null);
-                      setEditingSubtaskDetails(null);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="animate-in fade-in duration-300 delay-150">
-                <form onSubmit={handleSubmit} className="space-y-4">
+          <div className={`fixed top-0 right-0 h-full !pb-[50px] !mt-[60px] w-[850px] max-w-full bg-background shadow-lg transform transition-transform duration-300 ease-in-out z-50 overflow-hidden ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="flex h-full">
+
+
+              {/* Main Content Area */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 pr-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold">
+                        {panelActiveTab === 'view' ? 'Task Details' : panelActiveTab === 'edit' ? (editingTask ? 'Edit Task' : editingSubtaskDetails ? 'Edit Subtask' : parentTaskId ? 'Add Subtask' : 'Create New Task') : 'Comments'}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {panelActiveTab === 'view' ? 'View task information and details.' : panelActiveTab === 'edit' ? (editingTask ? 'Update the task details.' : editingSubtaskDetails ? 'Update the subtask details.' : parentTaskId ? 'Add a subtask to the parent task.' : 'Create a new task to track your work.') : 'View and add comments.'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setDrawerOpen(false);
+                          setModalOpen(true);
+                        }}
+                        className="h-8 w-8 p-0"
+                        title="Expand to modal"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setDrawerOpen(false);
+                          setParentTaskId(null);
+                          setEditingSubtaskDetails(null);
+                          setPanelActiveTab('view');
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="animate-in fade-in duration-300">
+                {/* View Tab Content */}
+                {panelActiveTab === 'view' && editingTask && (
+                  <div className="space-y-6">
+                    {/* Task Title */}
+                    <div>
+                      <h3 className="text-2xl font-semibold mb-2">{editingTask.title}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={
+                          editingTask.status === 'done' ? 'default' :
+                          editingTask.status === 'in_progress' ? 'secondary' :
+                          editingTask.status === 'in_review' ? 'outline' : 'outline'
+                        }>
+                          {editingTask.status === 'todo' ? 'To Do' :
+                           editingTask.status === 'in_progress' ? 'In Progress' :
+                           editingTask.status === 'in_review' ? 'In Review' : 'Done'}
+                        </Badge>
+                        <Badge variant={
+                          editingTask.priority === 'urgent' ? 'destructive' :
+                          editingTask.priority === 'high' ? 'default' :
+                          editingTask.priority === 'medium' ? 'secondary' : 'outline'
+                        }>
+                          {editingTask.priority}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {editingTask.description && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Description</Label>
+                        <p className="text-sm text-muted-foreground">{editingTask.description}</p>
+                      </div>
+                    )}
+
+                    {/* Due Date */}
+                    {editingTask.due_date && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Due Date</Label>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{new Date(editingTask.due_date).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assigned Users */}
+                    {taskAssignments[editingTask.id] && taskAssignments[editingTask.id].length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Assigned To</Label>
+                        <div className="space-y-2">
+                          {taskAssignments[editingTask.id].map((assignment) => (
+                            <div key={assignment.id} className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {assignment.profiles.first_name} {assignment.profiles.last_name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attachments */}
+                    {taskAttachments[editingTask.id] && taskAttachments[editingTask.id].length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Attachments</Label>
+                        <div className="space-y-2">
+                          {taskAttachments[editingTask.id].map((attachment) => (
+                            <div key={attachment.id} className="flex items-center justify-between p-2 border rounded-lg">
+                              <span className="text-sm truncate">{attachment.file_name}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => downloadAttachment(attachment)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Edit Button */}
+                    <Button 
+                      onClick={() => setPanelActiveTab('edit')}
+                      className="w-full"
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Task
+                    </Button>
+                  </div>
+                )}
+
+                {/* Edit Tab Content */}
+                {panelActiveTab === 'edit' && (
+                  <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">{editingSubtaskDetails ? 'Subtask Title' : parentTaskId ? 'Subtask Title' : 'Task Title'}</Label>
                     <Input
@@ -1290,32 +1399,129 @@ const Tasks = () => {
                     )}
                   </div>
 
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => {
-                      setDrawerOpen(false);
-                      setParentTaskId(null);
-                      setEditingSubtaskDetails(null);
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={uploadingFiles}>
-                      {uploadingFiles ? 'Uploading...' : editingSubtaskDetails ? 'Update Subtask' : parentTaskId ? 'Add Subtask' : editingTask ? 'Update Task' : 'Create Task'}
-                    </Button>
-                  </div>
-                </form>
-                
-                {/* Separator line */}
-                    <hr className="my-6 border-t border-gray-300" />
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={() => {
+                        setDrawerOpen(false);
+                        setParentTaskId(null);
+                        setEditingSubtaskDetails(null);
+                        setPanelActiveTab('view');
+                      }}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={uploadingFiles}>
+                        {uploadingFiles ? 'Uploading...' : editingSubtaskDetails ? 'Update Subtask' : parentTaskId ? 'Add Subtask' : editingTask ? 'Update Task' : 'Create Task'}
+                      </Button>
+                    </div>
+                  </form>
+                )}
 
-                {/* Comments Section - Only show when editing existing task (not subtask) */}
-                {editingTask && !editingSubtaskDetails && (
-                  <div className="mt-8 pt-6 border-t">
+                {/* Comments Tab Content */}
+                {panelActiveTab === 'comments' && editingTask && !editingSubtaskDetails && (
+                  <div className="animate-in fade-in duration-300">
                     <TaskComments taskId={editingTask.id} />
                   </div>
                 )}
+                </div>
               </div>
+              {/* Left Sidebar for View/Edit/Comments Navigation */}
+              <div className="w-16 border-r bg-muted/30 flex flex-col items-center py-6 gap-3">
+                {/* Show View and Comments when in View tab */}
+                {panelActiveTab === 'view' && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('view')}
+                      className={`w-12 h-12 p-0 rounded-lg transition-all ${
+                        panelActiveTab === 'view' 
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                          : 'hover:bg-muted'
+                      }`}
+                      title="View"
+                    >
+                      <Eye className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('comments')}
+                      className="w-12 h-12 p-0 rounded-lg transition-all hover:bg-muted"
+                      title="Comments"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </Button>
+                  </>
+                )}
+                
+                {/* Show Edit and Comments when in Edit tab */}
+                {panelActiveTab === 'edit' && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('edit')}
+                      className={`w-12 h-12 p-0 rounded-lg transition-all ${
+                        panelActiveTab === 'edit' 
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                          : 'hover:bg-muted'
+                      }`}
+                      title="Edit"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('comments')}
+                      className="w-12 h-12 p-0 rounded-lg transition-all hover:bg-muted"
+                      title="Comments"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </Button>
+                  </>
+                )}
+
+                {/* Show all three when in Comments tab */}
+                {panelActiveTab === 'comments' && editingTask && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('view')}
+                      className="w-12 h-12 p-0 rounded-lg transition-all hover:bg-muted"
+                      title="View"
+                    >
+                      <Eye className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('edit')}
+                      className="w-12 h-12 p-0 rounded-lg transition-all hover:bg-muted"
+                      title="Edit"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPanelActiveTab('comments')}
+                      className={`w-12 h-12 p-0 rounded-lg transition-all ${
+                        panelActiveTab === 'comments' 
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                          : 'hover:bg-muted'
+                      }`}
+                      title="Comments"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </Button>
+                  </>
+                )}
+              </div>
+
             </div>
           </div>
+        </div>
         </>
       )}
 
@@ -1783,6 +1989,7 @@ const Tasks = () => {
                 setEditingTask(null);
                 setParentTaskId(null);
                 setEditingSubtaskDetails(null);
+                setPanelActiveTab('edit');
                 setDrawerOpen(true);
               }} className="mt-4">
                 <Plus className="mr-2 h-4 w-4" />
